@@ -179,7 +179,7 @@ def render_player_with_sync(video_id: str, subtitles: list):
   /* ===== CỘT PHẢI: SUBTITLE LIST ===== */
   .col-subs {{
     flex: 1;
-    height: 100vh;
+    height: 60vh;
     overflow-y: auto;   /* Chỉ cột này cuộn */
     padding-right: 6px;
     padding-bottom: 40px;
