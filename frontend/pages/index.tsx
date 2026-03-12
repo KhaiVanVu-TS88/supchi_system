@@ -291,8 +291,7 @@ export default function HomePage() {
                             </div>
 
                             {/* ===== CỘT PHẢI: SUBTITLE PANEL (cuộn độc lập) ===== */}
-                            {/* <div className="flex-1 overflow-hidden px-5 pt-6 pb-0"> */}
-                            <div className="flex-none h-[80vh] overflow-hidden px-5 pt-6 pb-0">
+                            <div className="flex-1 h-[75vh] overflow-hidden px-5 pt-6 pb-0">
                                 <SubtitlePanel
                                     subtitles={subtitles}
                                     currentTime={currentTime}
