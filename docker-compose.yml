@@ -1,60 +1,89 @@
-# ===== DOCKER COMPOSE =====
-# File cấu hình để khởi động toàn bộ ứng dụng bằng một lệnh
+# ===== DOCKER COMPOSE — ROOT =====
+# Khởi động toàn bộ hệ thống bằng 1 lệnh:
+#   docker compose up --build
 #
-# Cách sử dụng:
-#   Khởi động: docker compose up --build
-#   Dừng:      docker compose down
-#   Xem log:   docker compose logs -f
-
-version: '3.8'
+# Dừng:
+#   docker compose down
+#
+# Xem log realtime:
+#   docker compose logs -f
+#
+# Chỉ chạy backend:
+#   docker compose up backend
 
 services:
-  # ===== SERVICE DUY NHẤT: ỨNG DỤNG STREAMLIT =====
-  app:
-    # Build image từ Dockerfile trong thư mục hiện tại
+
+  # ════════════════════════════════════════
+  #  BACKEND — FastAPI + Whisper AI
+  #  http://localhost:8000
+  #  http://localhost:8000/docs  ← Swagger UI
+  # ════════════════════════════════════════
+  backend:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
-    
-    # Tên container dễ nhớ
-    container_name: chinese-learning-app
-    
-    # Ánh xạ cổng: máy_host:container
-    # Truy cập qua http://localhost:8501
+    container_name: supchi4-backend
     ports:
-      - "8501:8501"
-    
-    # Mount source code vào container
-    # Thay đổi code sẽ được phản ánh ngay (trừ khi cần restart)
+      - "8000:8000"
     volumes:
-      - .:/app
-      # Tạo volume riêng cho model Whisper để cache qua các lần chạy
+      # Cache Whisper model qua các lần restart (tránh download lại)
       - whisper_cache:/root/.cache/huggingface
-    
-    # Biến môi trường
     environment:
-      # Tắt telemetry Streamlit
-      - STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
-      # Tắt thông báo email Streamlit
-      - STREAMLIT_SERVER_HEADLESS=true
-      # Tắt upgrade prompt
       - PYTHONDONTWRITEBYTECODE=1
-    
-    # Khởi động lại tự động nếu bị crash (trừ khi dừng thủ công)
+      - PYTHONUNBUFFERED=1
     restart: unless-stopped
-    
-    # Giới hạn tài nguyên (tùy chỉnh theo máy của bạn)
-    # Có thể tăng memory_limit nếu xử lý video dài
+    networks:
+      - app-network
     deploy:
       resources:
         limits:
-          memory: 4G     # Tối đa 4GB RAM
+          memory: 4G       # Whisper cần ~1.5GB, tổng pipeline ~3GB
         reservations:
-          memory: 1G     # Đảm bảo ít nhất 1GB RAM
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
-# ===== VOLUMES =====
-# Volume lưu cache model Whisper
-# Tránh tải lại model mỗi lần restart container
+  # ════════════════════════════════════════
+  #  FRONTEND — Next.js + TypeScript
+  #  http://localhost:3000
+  # ════════════════════════════════════════
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: supchi4-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      # URL backend dùng nội bộ Docker network (tên service)
+      - BACKEND_URL=http://backend:8000
+      # URL backend cho browser (public)
+      - NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
+    depends_on:
+      backend:
+        condition: service_healthy   # Chờ backend healthy trước
+    restart: unless-stopped
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+# ════════════════════════════════════════
+#  SHARED RESOURCES
+# ════════════════════════════════════════
+networks:
+  app-network:
+    driver: bridge
+
 volumes:
   whisper_cache:
     driver: local
