@@ -1,0 +1,60 @@
+# ===== DOCKER COMPOSE =====
+# File cấu hình để khởi động toàn bộ ứng dụng bằng một lệnh
+#
+# Cách sử dụng:
+#   Khởi động: docker compose up --build
+#   Dừng:      docker compose down
+#   Xem log:   docker compose logs -f
+
+version: '3.8'
+
+services:
+  # ===== SERVICE DUY NHẤT: ỨNG DỤNG STREAMLIT =====
+  app:
+    # Build image từ Dockerfile trong thư mục hiện tại
+    build:
+      context: .
+      dockerfile: Dockerfile
+    
+    # Tên container dễ nhớ
+    container_name: chinese-learning-app
+    
+    # Ánh xạ cổng: máy_host:container
+    # Truy cập qua http://localhost:8501
+    ports:
+      - "8501:8501"
+    
+    # Mount source code vào container
+    # Thay đổi code sẽ được phản ánh ngay (trừ khi cần restart)
+    volumes:
+      - .:/app
+      # Tạo volume riêng cho model Whisper để cache qua các lần chạy
+      - whisper_cache:/root/.cache/huggingface
+    
+    # Biến môi trường
+    environment:
+      # Tắt telemetry Streamlit
+      - STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
+      # Tắt thông báo email Streamlit
+      - STREAMLIT_SERVER_HEADLESS=true
+      # Tắt upgrade prompt
+      - PYTHONDONTWRITEBYTECODE=1
+    
+    # Khởi động lại tự động nếu bị crash (trừ khi dừng thủ công)
+    restart: unless-stopped
+    
+    # Giới hạn tài nguyên (tùy chỉnh theo máy của bạn)
+    # Có thể tăng memory_limit nếu xử lý video dài
+    deploy:
+      resources:
+        limits:
+          memory: 4G     # Tối đa 4GB RAM
+        reservations:
+          memory: 1G     # Đảm bảo ít nhất 1GB RAM
+
+# ===== VOLUMES =====
+# Volume lưu cache model Whisper
+# Tránh tải lại model mỗi lần restart container
+volumes:
+  whisper_cache:
+    driver: local
