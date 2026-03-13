@@ -1,11 +1,14 @@
 /**
- * pages/_app.tsx
- * Next.js App wrapper
- * Dùng relative import cho CSS để tránh vấn đề alias resolution
+ * pages/_app.tsx — App wrapper với AuthProvider
  */
 import type { AppProps } from 'next/app'
+import { AuthProvider } from '../lib/auth-context'
 import '../styles/globals.css'
 
 export default function App({ Component, pageProps }: AppProps) {
-    return <Component {...pageProps} />
+    return (
+        <AuthProvider>
+            <Component {...pageProps} />
+        </AuthProvider>
+    )
 }
