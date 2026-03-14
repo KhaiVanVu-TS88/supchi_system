@@ -1,16 +1,14 @@
-# ===== DOCKER COMPOSE v2 =====
-# Hệ thống đầy đủ: Frontend + Backend + Database
+# ===== DOCKER COMPOSE v3 =====
+# Services: frontend + backend-api + celery-worker + redis + db
 #
 # Khởi động: docker compose up --build
 # Dừng:      docker compose down
-# Xoá data:  docker compose down -v
 
 services:
 
-  # ════════════════════════════════════════
+  # ════════════════════════════════════
   #  DATABASE — PostgreSQL
-  #  (Dùng SQLite mặc định nếu không muốn PostgreSQL)
-  # ════════════════════════════════════════
+  # ════════════════════════════════════
   db:
     image: postgres:16-alpine
     container_name: supchi4-db
@@ -29,11 +27,30 @@ services:
       timeout: 5s
       retries: 5
 
-  # ════════════════════════════════════════
-  #  BACKEND — FastAPI + Auth + Whisper
+  # ════════════════════════════════════
+  #  REDIS — Task broker + result backend
+  #  Port 6379 (internal only)
+  # ════════════════════════════════════
+  redis:
+    image: redis:7-alpine
+    container_name: supchi4-redis
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ════════════════════════════════════
+  #  BACKEND API — FastAPI
   #  http://localhost:8000
   #  http://localhost:8000/docs
-  # ════════════════════════════════════════
+  # ════════════════════════════════════
   backend:
     build:
       context: ./backend
@@ -43,39 +60,75 @@ services:
       - "8000:8000"
     environment:
       - PYTHONUNBUFFERED=1
-      # JWT — ĐỔI SECRET_KEY trước khi deploy!
-      - SECRET_KEY=${SECRET_KEY:-supchi4-change-this-secret-in-production}
-      - ACCESS_TOKEN_EXPIRE_MINUTES=60
-      - REFRESH_TOKEN_EXPIRE_DAYS=30
-      # Database — PostgreSQL
+      - SECRET_KEY=${SECRET_KEY:-supchi4-change-in-production}
       - DATABASE_URL=postgresql://supchi4:${DB_PASSWORD:-supchi4pass}@db:5432/supchi4
-      # Hoặc dùng SQLite (bỏ comment dòng dưới, comment dòng trên):
-      # - DATABASE_URL=sqlite:///./supchi4.db
+      - REDIS_URL=redis://redis:6379/0
       - FRONTEND_URL=http://localhost:3000
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - DEBUG=false
     volumes:
       - whisper_cache:/root/.cache/huggingface
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - app-network
     deploy:
       resources:
-        limits:    { memory: 4G }
-        reservations: { memory: 1G }
+        limits:    { memory: 1G }
+        reservations: { memory: 256M }
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 30s
 
-  # ════════════════════════════════════════
+  # ════════════════════════════════════
+  #  CELERY WORKER — AI Pipeline
+  #  Dùng cùng image với backend,
+  #  chỉ override command để chạy worker
+  # ════════════════════════════════════
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: supchi4-worker
+    # Override CMD để chạy Celery thay vì uvicorn
+    command: >
+      celery -A worker.celery_app worker
+      --loglevel=info
+      --concurrency=1
+      --max-tasks-per-child=10
+    environment:
+      - PYTHONUNBUFFERED=1
+      - SECRET_KEY=${SECRET_KEY:-supchi4-change-in-production}
+      - DATABASE_URL=postgresql://supchi4:${DB_PASSWORD:-supchi4pass}@db:5432/supchi4
+      - REDIS_URL=redis://redis:6379/0
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    volumes:
+      # Chia sẻ Whisper cache với backend (không cần tải lại)
+      - whisper_cache:/root/.cache/huggingface
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:    { memory: 4G }    # Whisper cần ~3GB
+        reservations: { memory: 1G }
+
+  # ════════════════════════════════════
   #  FRONTEND — Next.js
   #  http://localhost:3000
-  # ════════════════════════════════════════
+  # ════════════════════════════════════
   frontend:
     build:
       context: ./frontend
@@ -104,6 +157,5 @@ networks:
 
 volumes:
   postgres_data:
-    driver: local
+  redis_data:
   whisper_cache:
-    driver: local

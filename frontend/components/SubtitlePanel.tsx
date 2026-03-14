@@ -23,13 +23,13 @@ function SkeletonCard({ delay }: { delay: number }) {
       style={{ animationDelay: `${delay}ms` }}
     >
       <div className="flex gap-2 items-center">
-        <div className="skeleton h-3 w-8 rounded"/>
-        <div className="skeleton h-3 w-24 rounded"/>
+        <div className="skeleton h-3 w-8 rounded" />
+        <div className="skeleton h-3 w-24 rounded" />
       </div>
-      <div className="skeleton h-7 w-3/4 rounded"/>
-      <div className="skeleton h-4 w-1/2 rounded"/>
-      <div className="skeleton h-px w-full"/>
-      <div className="skeleton h-4 w-4/5 rounded"/>
+      <div className="skeleton h-7 w-3/4 rounded" />
+      <div className="skeleton h-4 w-1/2 rounded" />
+      <div className="skeleton h-px w-full" />
+      <div className="skeleton h-4 w-4/5 rounded" />
     </div>
   )
 }
@@ -54,8 +54,8 @@ export default function SubtitlePanel({ subtitles, currentTime, onSeek }: Subtit
       <div className="h-full flex flex-col space-y-3 overflow-hidden">
         {/* Header skeleton */}
         <div className="flex items-center justify-between pb-3 border-b border-white/6 flex-shrink-0">
-          <div className="skeleton h-4 w-32 rounded"/>
-          <div className="skeleton h-4 w-16 rounded"/>
+          <div className="skeleton h-4 w-32 rounded" />
+          <div className="skeleton h-4 w-16 rounded" />
         </div>
         {/* Card skeletons */}
         <div className="flex-1 space-y-3 overflow-hidden">
@@ -69,10 +69,10 @@ export default function SubtitlePanel({ subtitles, currentTime, onSeek }: Subtit
 
   // Tổng thời lượng video (lấy từ subtitle cuối)
   const totalDuration = subtitles[subtitles.length - 1]?.end ?? 0
-  const formatDur = (s: number) => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`
+  const formatDur = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-[75vh] flex flex-col">
 
       {/* ===== HEADER ===== */}
       <div className="flex items-center justify-between pb-4 border-b border-white/6 flex-shrink-0">

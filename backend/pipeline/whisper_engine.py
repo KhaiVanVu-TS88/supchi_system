@@ -69,7 +69,7 @@ def transcribe_audio(audio_path: str) -> List[Dict]:
         result.append({
             "start": round(segment.start, 2),
             "end": round(segment.end, 2),
-            "text": text
+            "chinese": text
         })
     
     return result

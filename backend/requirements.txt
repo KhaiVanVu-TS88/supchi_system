@@ -1,4 +1,4 @@
-# ===== BACKEND REQUIREMENTS v2 =====
+# ===== BACKEND REQUIREMENTS v3 =====
 
 # --- API Server ---
 fastapi==0.111.0
@@ -11,13 +11,21 @@ psycopg2-binary==2.9.9
 
 # --- Authentication ---
 python-jose[cryptography]==3.3.0
-bcrypt==4.0.1                  # Ghim version cũ — tránh lỗi passlib incompatible
+bcrypt==4.0.1
 passlib[bcrypt]==1.7.4
 
-# --- AI Pipeline (giữ nguyên) ---
+# --- Background Jobs ---
+celery==5.3.6
+redis==5.0.4
+kombu==5.3.4
+
+# --- AI Pipeline ---
 yt-dlp==2024.5.27
 faster-whisper==1.0.3
 ffmpeg-python==0.2.0
 pypinyin==0.51.0
 deep-translator==1.11.4
 requests>=2.28.0
+
+# --- LLM (optional) ---
+anthropic>=0.25.0
