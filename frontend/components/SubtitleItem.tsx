@@ -1,126 +1,96 @@
 /**
- * components/SubtitleItem.tsx
- *
- * Một dòng subtitle gồm 3 tầng:
- *  1. Chữ Hán (to, bold, font Noto Serif SC)
- *  2. Pinyin (italic, màu amber)
- *  3. Tiếng Việt (nhỏ hơn, màu mờ)
- *
- * Khi active: highlight vàng + pulse dot + scroll vào viewport
+ * components/SubtitleItem.tsx v3.1
+ * Subtitle card với clickable words → tra từ điển
  */
-
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useState, useCallback } from 'react'
 import clsx from 'clsx'
 import type { Subtitle } from '../types/subtitle'
+import dynamic from 'next/dynamic'
 
-interface SubtitleItemProps {
-    subtitle: Subtitle
+// Load WordPopup dynamically (tránh SSR issues)
+const WordPopup = dynamic(() => import('./dictionary/WordPopup'), { ssr: false })
+
+interface Props {
     index: number
+    subtitle: Subtitle
     isActive: boolean
-    onSeek: (time: number) => void   // Click → seek video
+    onClick: () => void
 }
 
-/** Format giây thành MM:SS */
-function formatTime(secs: number): string {
-    const m = Math.floor(secs / 60)
-    const s = Math.floor(secs % 60)
-    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+function formatTime(seconds: number): string {
+    const m = Math.floor(seconds / 60)
+    const s = Math.floor(seconds % 60)
+    return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-export default function SubtitleItem({ subtitle, index, isActive, onSeek }: SubtitleItemProps) {
-    const cardRef = useRef<HTMLDivElement>(null)
+const segmentCache = new Map<string, string[]>()
 
-    /**
-     * Auto-scroll: khi isActive thay đổi sang true,
-     * cuộn card vào giữa vùng nhìn thấy của panel.
-     */
+async function segmentChinese(text: string): Promise<string[]> {
+    if (segmentCache.has(text)) return segmentCache.get(text)!
+    try {
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8000'
+        const res = await fetch(`${backendUrl}/api/dictionary/segment?text=${encodeURIComponent(text)}`)
+        if (res.ok) {
+            const data = await res.json()
+            segmentCache.set(text, data.words)
+            return data.words
+        }
+    } catch { }
+    const chars = Array.from(text)
+    segmentCache.set(text, chars)
+    return chars
+}
+
+export default function SubtitleItem({ subtitle, isActive, onClick }: Props) {
+    const ref = useRef<HTMLDivElement>(null)
+    const [segmented, setSegmented] = useState<string[] | null>(null)
+    const [popup, setPopup] = useState<{ word: string; rect: DOMRect } | null>(null)
+
     useEffect(() => {
-        if (isActive && cardRef.current) {
-            cardRef.current.scrollIntoView({
-                behavior: 'smooth',
-                block: 'center',    // Giữ card ở trung tâm vùng hiển thị
-            })
+        if (isActive && ref.current) {
+            ref.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
         }
     }, [isActive])
 
-    return (
-        <div
-            ref={cardRef}
-            role="button"
-            tabIndex={0}
-            aria-label={`Câu ${index + 1}: ${subtitle.chinese}`}
-            aria-current={isActive ? 'true' : undefined}
-            onClick={() => onSeek(subtitle.start)}
-            onKeyDown={e => e.key === 'Enter' && onSeek(subtitle.start)}
-            className={clsx(
-                'sub-card animate-slide-up',
-                isActive && 'sub-card-active'
-            )}
-        >
-            {/* ===== HEADER: timestamp + index ===== */}
-            <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                    {/* Số thứ tự */}
-                    <span className={clsx(
-                        'text-[10px] font-mono font-medium w-5 h-5 rounded flex items-center justify-center transition-colors',
-                        isActive
-                            ? 'bg-amber-glow/20 text-amber-glow'
-                            : 'bg-white/5 text-ghost'
-                    )}>
-                        {index + 1}
-                    </span>
+    useEffect(() => {
+        segmentChinese(subtitle.chinese).then(setSegmented)
+    }, [subtitle.chinese])
 
-                    {/* Timestamp */}
-                    <span className={clsx(
-                        'text-[11px] font-mono tracking-wider transition-colors',
-                        isActive ? 'text-amber-glow/80' : 'text-ghost'
-                    )}>
-                        {formatTime(subtitle.start)} → {formatTime(subtitle.end)}
-                    </span>
+    const handleWordClick = useCallback((e: React.MouseEvent, word: string) => {
+        e.stopPropagation()
+        if (!word || !/[\u4e00-\u9fff]/.test(word)) return
+        setPopup({ word, rect: (e.target as HTMLElement).getBoundingClientRect() })
+    }, [])
+
+    return (
+        <>
+            <div ref={ref} onClick={onClick} className={clsx('sub-card animate-slide-up', isActive && 'sub-card-active')}>
+                {isActive && <span className="absolute right-3 top-3 w-1.5 h-1.5 rounded-full bg-amber-glow animate-pulse" />}
+                <p className="text-[10px] font-mono text-ghost mb-2">{formatTime(subtitle.start)}</p>
+
+                {/* Chinese — segmented clickable words */}
+                <div className="font-serif text-xl text-snow mb-1 leading-relaxed flex flex-wrap gap-x-0.5">
+                    {segmented ? segmented.map((word, i) => (
+                        <span
+                            key={i}
+                            onClick={e => handleWordClick(e, word)}
+                            className={clsx(
+                                'transition-colors rounded px-0.5',
+                                /[\u4e00-\u9fff]/.test(word)
+                                    ? 'cursor-pointer hover:bg-amber-glow/20 hover:text-amber-glow'
+                                    : 'cursor-default'
+                            )}
+                        >{word}</span>
+                    )) : subtitle.chinese}
                 </div>
 
-                {/* Pulse dot khi đang active */}
-                {isActive && (
-                    <span className="flex items-center gap-1.5 text-amber-glow animate-fade-in">
-                        <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-glow opacity-60" />
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-glow" />
-                        </span>
-                        <span className="text-[10px] font-medium tracking-wider uppercase">Now</span>
-                    </span>
-                )}
+                <p className="text-xs font-mono text-amber-glow/80 mb-1.5 leading-relaxed">{subtitle.pinyin}</p>
+                <p className="text-sm text-mist leading-relaxed">{subtitle.vietnamese}</p>
             </div>
 
-            {/* ===== CHỮ HÁN ===== */}
-            <p className={clsx(
-                'font-serif text-2xl leading-relaxed mb-1 transition-colors select-text',
-                isActive ? 'text-snow' : 'text-snow/90'
-            )}>
-                {subtitle.chinese}
-            </p>
-
-            {/* ===== PINYIN ===== */}
-            <p className={clsx(
-                'font-sans text-sm italic tracking-wide mb-2.5 transition-colors select-text',
-                isActive ? 'text-amber-soft' : 'text-amber-soft/70'
-            )}>
-                {subtitle.pinyin}
-            </p>
-
-            {/* Divider mờ */}
-            <div className={clsx(
-                'h-px mb-2.5 transition-colors',
-                isActive ? 'bg-white/10' : 'bg-white/5'
-            )} />
-
-            {/* ===== TIẾNG VIỆT ===== */}
-            <p className={clsx(
-                'font-sans text-sm leading-relaxed transition-colors select-text',
-                isActive ? 'text-snow/80' : 'text-mist/70'
-            )}>
-                <span className="text-jade/60 mr-1.5 not-italic text-xs">🇻🇳</span>
-                {subtitle.vietnamese}
-            </p>
-        </div>
+            {popup && (
+                <WordPopup word={popup.word} anchorRect={popup.rect} onClose={() => setPopup(null)} />
+            )}
+        </>
     )
 }

@@ -1,5 +1,5 @@
 /**
- * lib/api.ts v3 — HTTP client với Jobs API
+ * lib/api.ts v3.2 — HTTP client + Dictionary API (multi-meaning)
  */
 
 const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8000'
@@ -24,12 +24,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     ...(options.headers as Record<string, string>),
   }
   if (token) headers['Authorization'] = `Bearer ${token}`
-
   const res = await fetch(`${BASE_URL}${path}`, { ...options, headers })
-
   if (res.status === 401 && typeof window !== 'undefined') {
-    clearTokens()
-    window.location.href = '/auth/login'
+    clearTokens(); window.location.href = '/auth/login'
     throw new Error('Phiên đăng nhập hết hạn.')
   }
   if (!res.ok) {
@@ -40,82 +37,54 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return res.json()
 }
 
-// ── Auth API ──
 export const authApi = {
   register: (username: string, email: string, password: string) =>
-    request<TokenResponse>('/api/auth/register', {
-      method: 'POST', body: JSON.stringify({ username, email, password }),
-    }),
+    request<TokenResponse>('/api/auth/register', { method: 'POST', body: JSON.stringify({ username, email, password }) }),
   login: (email: string, password: string) =>
-    request<TokenResponse>('/api/auth/login', {
-      method: 'POST', body: JSON.stringify({ email, password }),
-    }),
+    request<TokenResponse>('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   me: () => request<UserInfo>('/api/auth/me'),
 }
 
-// ── Videos API ──
 export const videosApi = {
-  // v3: trả về job ngay lập tức
   analyze: (url: string, title?: string) =>
-    request<AnalyzeJobResponse>('/api/videos/analyze', {
-      method: 'POST', body: JSON.stringify({ url, title }),
-    }),
-  list: (skip = 0, limit = 20) =>
-    request<VideoSummary[]>(`/api/videos?skip=${skip}&limit=${limit}`),
-  get: (id: number) =>
-    request<VideoDetail>(`/api/videos/${id}`),
-  delete: (id: number) =>
-    request<void>(`/api/videos/${id}`, { method: 'DELETE' }),
+    request<AnalyzeJobResponse>('/api/videos/analyze', { method: 'POST', body: JSON.stringify({ url, title }) }),
+  list: (skip = 0, limit = 20) => request<VideoSummary[]>(`/api/videos?skip=${skip}&limit=${limit}`),
+  get: (id: number) => request<VideoDetail>(`/api/videos/${id}`),
+  delete: (id: number) => request<void>(`/api/videos/${id}`, { method: 'DELETE' }),
 }
 
-// ── Jobs API ──
 export const jobsApi = {
   get: (jobId: number) => request<JobStatus>(`/api/jobs/${jobId}`),
+}
+
+export const dictionaryApi = {
+  lookup: (word: string) => request<DictionaryEntry>(`/api/dictionary?word=${encodeURIComponent(word)}`),
+  segment: (text: string) => request<{ text: string; words: string[] }>(`/api/dictionary/segment?text=${encodeURIComponent(text)}`),
+  audioUrl: (filename: string) => `${BASE_URL}/api/audio/${filename}`,
 }
 
 // ── Types ──
 export interface TokenResponse { access_token: string; refresh_token: string }
 export interface UserInfo { id: number; username: string; email: string; created_at: string }
-
-export interface AnalyzeJobResponse {
-  job_id: number
-  status: string
-  message: string
-}
-
+export interface AnalyzeJobResponse { job_id: number; status: string; message: string }
 export interface JobStatus {
-  id: number
-  status: 'queued' | 'processing' | 'done' | 'failed'
-  progress: number      // 0–100
-  youtube_url: string
-  title: string | null
-  subtitle_source: string | null   // "manual" | "whisper"
-  llm_used: string | null
-  error_message: string | null
-  video_id: number | null          // set khi done
-  created_at: string
-  finished_at: string | null
+  id: number; status: 'queued' | 'processing' | 'done' | 'failed'; progress: number
+  youtube_url: string; title: string | null; subtitle_source: string | null
+  llm_used: string | null; error_message: string | null; video_id: number | null
+  created_at: string; finished_at: string | null
 }
+export interface VideoSummary { id: number; youtube_url: string; video_id: string; title: string | null; thumbnail_url: string | null; subtitle_count: number; created_at: string }
+export interface SubtitleItem { id: number; start_time: number; end_time: number; chinese: string; pinyin: string; vietnamese: string }
+export interface VideoDetail extends VideoSummary { subtitles: SubtitleItem[] }
 
-export interface VideoSummary {
-  id: number
-  youtube_url: string
-  video_id: string
-  title: string | null
-  thumbnail_url: string | null
-  subtitle_count: number
-  created_at: string
-}
-
-export interface SubtitleItem {
-  id: number
-  start_time: number
-  end_time: number
-  chinese: string
+export interface DictionaryEntry {
+  word: string
   pinyin: string
-  vietnamese: string
-}
-
-export interface VideoDetail extends VideoSummary {
-  subtitles: SubtitleItem[]
+  meanings_vi: string[]    // ĐA NGHĨA — dùng cái này để hiển thị
+  meaning_vi: string       // Nghĩa đầu tiên (backward compat)
+  pos: string
+  grammar: string
+  example: { zh: string; vi: string }
+  audio_url: string
+  definitions_en: string[]
 }

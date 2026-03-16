@@ -1,4 +1,4 @@
-# ===== BACKEND REQUIREMENTS v3 =====
+# ===== BACKEND REQUIREMENTS v3.1 =====
 
 # --- API Server ---
 fastapi==0.111.0
@@ -26,6 +26,11 @@ ffmpeg-python==0.2.0
 pypinyin==0.51.0
 deep-translator==1.11.4
 requests>=2.28.0
+
+# --- Dictionary ---
+jieba==0.42.1
+edge-tts>=6.1.18          # Luôn dùng version mới nhất để tránh token expired
+gTTS==2.5.1               # Fallback TTS khi edge-tts bị block
 
 # --- LLM (optional) ---
 anthropic>=0.25.0

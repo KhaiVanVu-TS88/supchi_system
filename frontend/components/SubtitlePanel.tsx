@@ -117,7 +117,7 @@ export default function SubtitlePanel({ subtitles, currentTime, onSeek }: Subtit
             subtitle={sub}
             index={idx}
             isActive={idx === activeIndex}
-            onSeek={onSeek}
+            onClick={() => onSeek(sub.start)}
           />
         ))}
 
