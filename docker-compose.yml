@@ -1,170 +1,4 @@
-# # ===== DOCKER COMPOSE v3 =====
-# # Services: frontend + backend-api + celery-worker + redis + db
-# #
-# # Khởi động: docker compose up --build
-# # Dừng:      docker compose down
-
-# services:
-
-#   # ════════════════════════════════════
-#   #  DATABASE — PostgreSQL
-#   # ════════════════════════════════════
-#   db:
-#     image: postgres:16-alpine
-#     container_name: supchi4-db
-#     environment:
-#       POSTGRES_DB:       supchi4
-#       POSTGRES_USER:     supchi4
-#       POSTGRES_PASSWORD: ${DB_PASSWORD:-supchi4pass}
-#     volumes:
-#       - postgres_data:/var/lib/postgresql/data
-#     networks:
-#       - app-network
-#     restart: unless-stopped
-#     healthcheck:
-#       test: ["CMD-SHELL", "pg_isready -U supchi4"]
-#       interval: 10s
-#       timeout: 5s
-#       retries: 5
-
-#   # ════════════════════════════════════
-#   #  REDIS — Task broker + result backend
-#   #  Port 6379 (internal only)
-#   # ════════════════════════════════════
-#   redis:
-#     image: redis:7-alpine
-#     container_name: supchi4-redis
-#     command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
-#     volumes:
-#       - redis_data:/data
-#     networks:
-#       - app-network
-#     restart: unless-stopped
-#     healthcheck:
-#       test: ["CMD", "redis-cli", "ping"]
-#       interval: 10s
-#       timeout: 3s
-#       retries: 5
-
-#   # ════════════════════════════════════
-#   #  BACKEND API — FastAPI
-#   #  http://localhost:8000
-#   #  http://localhost:8000/docs
-#   # ════════════════════════════════════
-#   backend:
-#     build:
-#       context: ./backend
-#       dockerfile: Dockerfile
-#     container_name: supchi4-backend
-#     ports:
-#       - "8000:8000"
-#     environment:
-#       - PYTHONUNBUFFERED=1
-#       - SECRET_KEY=${SECRET_KEY:-supchi4-change-in-production}
-#       - DATABASE_URL=postgresql://supchi4:${DB_PASSWORD:-supchi4pass}@db:5432/supchi4
-#       - REDIS_URL=redis://redis:6379/0
-#       - FRONTEND_URL=http://localhost:3000
-#       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
-#       - DEBUG=false
-#     volumes:
-#       - whisper_cache:/root/.cache/huggingface
-#     depends_on:
-#       db:
-#         condition: service_healthy
-#       redis:
-#         condition: service_healthy
-#     restart: unless-stopped
-#     networks:
-#       - app-network
-#     deploy:
-#       resources:
-#         limits:    { memory: 1G }
-#         reservations: { memory: 256M }
-#     healthcheck:
-#       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-#       interval: 30s
-#       timeout: 10s
-#       retries: 3
-#       start_period: 30s
-
-#   # ════════════════════════════════════
-#   #  CELERY WORKER — AI Pipeline
-#   #  Dùng cùng image với backend,
-#   #  chỉ override command để chạy worker
-#   # ════════════════════════════════════
-#   worker:
-#     build:
-#       context: ./backend
-#       dockerfile: Dockerfile
-#     container_name: supchi4-worker
-#     # Override CMD để chạy Celery thay vì uvicorn
-#     command: >
-#       celery -A worker.celery_app worker
-#       --loglevel=info
-#       --concurrency=1
-#       --max-tasks-per-child=10
-#     environment:
-#       - PYTHONUNBUFFERED=1
-#       - SECRET_KEY=${SECRET_KEY:-supchi4-change-in-production}
-#       - DATABASE_URL=postgresql://supchi4:${DB_PASSWORD:-supchi4pass}@db:5432/supchi4
-#       - REDIS_URL=redis://redis:6379/0
-#       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
-#     volumes:
-#       # Chia sẻ Whisper cache với backend (không cần tải lại)
-#       - whisper_cache:/root/.cache/huggingface
-#     depends_on:
-#       db:
-#         condition: service_healthy
-#       redis:
-#         condition: service_healthy
-#     restart: unless-stopped
-#     networks:
-#       - app-network
-#     deploy:
-#       resources:
-#         limits:    { memory: 4G }    # Whisper cần ~3GB
-#         reservations: { memory: 1G }
-
-#   # ════════════════════════════════════
-#   #  FRONTEND — Next.js
-#   #  http://localhost:3000
-#   # ════════════════════════════════════
-#   frontend:
-#     build:
-#       context: ./frontend
-#       dockerfile: Dockerfile
-#     container_name: supchi4-frontend
-#     ports:
-#       - "3000:3000"
-#     environment:
-#       - NODE_ENV=production
-#       - BACKEND_URL=http://backend:8000
-#       - NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
-#     depends_on:
-#       backend:
-#         condition: service_healthy
-#     restart: unless-stopped
-#     networks:
-#       - app-network
-#     deploy:
-#       resources:
-#         limits:    { memory: 512M }
-#         reservations: { memory: 256M }
-
-# networks:
-#   app-network:
-#     driver: bridge
-
-# volumes:
-#   postgres_data:
-#   redis_data:
-#   whisper_cache:
-# ===== DOCKER COMPOSE v3 — China Mode =====
-# Chỉ dùng image từ Aliyun mirror (không cần Docker Hub)
-# Redis chạy trong cùng container với backend
-# SQLite thay PostgreSQL (không cần pull image)
- 
- # ===== DOCKER COMPOSE v3 — China Mode + Proxy =====
+# ===== DOCKER COMPOSE v3.2 — optimized =====
 
 services:
 
@@ -184,30 +18,31 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - HF_ENDPOINT=https://hf-mirror.com
       - DEBUG=false
-      # Proxy cho YouTube và các service nước ngoài
       - HTTP_PROXY=http://172.25.80.1:7897
       - HTTPS_PROXY=http://172.25.80.1:7897
       - http_proxy=http://172.25.80.1:7897
       - https_proxy=http://172.25.80.1:7897
-      # Không dùng proxy cho internal services
-      - NO_PROXY=localhost,127.0.0.1,backend,worker,redis
-      - no_proxy=localhost,127.0.0.1,backend,worker,redis
+      - NO_PROXY=localhost,127.0.0.1,backend,worker
+      - no_proxy=localhost,127.0.0.1,backend,worker
+      # EasyOCR lưu model cache vào volume (không tải lại mỗi restart)
+      - EASYOCR_MODULE_PATH=/easyocr_models
     volumes:
       - whisper_cache:/root/.cache/huggingface
       - sqlite_data:/data
+      - easyocr_cache:/easyocr_models   # ← cache EasyOCR model
     restart: unless-stopped
     networks:
       - app-network
     deploy:
       resources:
-        limits:    { memory: 1G }
-        reservations: { memory: 256M }
+        limits:    { memory: 2G }        # Tăng lên vì EasyOCR cần thêm RAM
+        reservations: { memory: 512M }
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 45s
+      start_period: 60s
 
   worker:
     build:
@@ -229,7 +64,6 @@ services:
       - REDIS_URL=redis://backend:6379/0
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - HF_ENDPOINT=https://hf-mirror.com
-      # Proxy cho YouTube
       - HTTP_PROXY=http://172.25.80.1:7897
       - HTTPS_PROXY=http://172.25.80.1:7897
       - http_proxy=http://172.25.80.1:7897
@@ -275,3 +109,4 @@ networks:
 volumes:
   sqlite_data:
   whisper_cache:
+  easyocr_cache:     # ← EasyOCR model cache

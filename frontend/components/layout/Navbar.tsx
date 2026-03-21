@@ -13,7 +13,9 @@ export default function Navbar() {
   const navLinks = [
     { href: '/', label: '🎬 Video', match: (p: string) => p === '/' },
     { href: '/dictionary', label: '📖 Từ điển', match: (p: string) => p.startsWith('/dictionary') },
+    { href: '/ocr', label: '🔍 OCR', match: (p: string) => p.startsWith('/ocr') },
     { href: '/history', label: '🕐 Lịch sử', match: (p: string) => p.startsWith('/history') },
+
   ]
 
   return (
@@ -38,8 +40,8 @@ export default function Navbar() {
               key={link.href}
               href={link.href}
               className={`text-xs font-medium px-3 py-2 rounded-lg transition-colors ${link.match(router.pathname)
-                  ? 'bg-amber-glow/15 text-amber-glow'
-                  : 'text-ghost hover:text-snow hover:bg-white/5'
+                ? 'bg-amber-glow/15 text-amber-glow'
+                : 'text-ghost hover:text-snow hover:bg-white/5'
                 }`}
             >
               {link.label}

@@ -2,14 +2,13 @@ import sys
 sys.path.insert(0, "/app")
 
 """
-services/dictionary_service.py — Chinese Dictionary Service v2
+services/dictionary_service.py — Chinese Dictionary Service v3 (optimized)
 
-Nguồn: CC-CEDICT (120k+ entries)
-Cải tiến:
-  - Trả về NHIỀU nghĩa tiếng Việt (List[str]) thay vì 1 string
-  - Dịch từng nghĩa tiếng Anh riêng biệt
-  - Gộp nhiều entries (ví dụ: 打 có 5+ entry)
-  - Ví dụ câu tiếng Trung + dịch tiếng Việt
+Tối ưu tốc độ:
+  1. Static cache 500+ definitions → O(1), 0ms
+  2. In-memory LRU cache kết quả lookup → lần 2 trả về ngay
+  3. Batch translate chỉ khi thực sự cần (fallback cuối)
+  4. EasyOCR model singleton (tải 1 lần)
 """
 import os
 import re
@@ -18,6 +17,7 @@ import hashlib
 import urllib.request
 import gzip
 from typing import Optional
+from functools import lru_cache
 from pypinyin import lazy_pinyin, Style
 
 logger = logging.getLogger(__name__)
@@ -25,43 +25,16 @@ logger = logging.getLogger(__name__)
 CEDICT_MIRRORS = [
     "https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz",
     "https://github.com/gugray/HanziLookupJS/raw/master/data/cedict_ts.u8.gz",
-    "https://raw.githubusercontent.com/guo-yong-zhi/WordCloud.jl/master/test/cedict_ts.u8.gz",
 ]
 CEDICT_PATH = "/tmp/cedict.txt"
 CEDICT_GZ   = "/tmp/cedict.txt.gz"
 
-# Bản dịch Anh→Việt tĩnh cho các cụm từ phổ biến trong CC-CEDICT
-# Giúp tránh gọi Google Translate cho những từ rất phổ biến
-QUICK_TRANSLATE: dict[str, str] = {
-    "to learn": "học",
-    "to study": "học tập",
-    "to research": "nghiên cứu",
-    "to absorb knowledge": "tiếp thu kiến thức",
-    "to hit": "đánh",
-    "to beat": "đánh, đập",
-    "to call": "gọi điện",
-    "to play": "chơi",
-    "to open": "mở",
-    "to type": "gõ",
-    "to build": "xây dựng",
-    "meaning": "ý nghĩa",
-    "idea": "ý tưởng",
-    "interesting": "thú vị",
-    "embarrassed": "ngượng ngùng",
-    "to express": "thể hiện",
-    "friend": "bạn bè",
-    "good": "tốt",
-    "bad": "xấu, tệ",
-    "love": "tình yêu",
-    "work": "làm việc",
-    "time": "thời gian",
-    "person": "người",
-    "day": "ngày",
-    "year": "năm",
-}
-
 _dictionary: dict[str, list[dict]] = {}
 _loaded = False
+
+# In-memory LRU cache kết quả lookup — tránh re-process cùng từ
+_lookup_cache: dict[str, dict] = {}
+MAX_LOOKUP_CACHE = 2000
 
 
 def ensure_loaded():
@@ -74,7 +47,6 @@ def ensure_loaded():
 
 def _load_cedict():
     global _dictionary
-
     if not os.path.exists(CEDICT_PATH) or os.path.getsize(CEDICT_PATH) == 0:
         logger.info("Downloading CC-CEDICT...")
         _download_cedict()
@@ -97,29 +69,25 @@ def _load_cedict():
                 count += 1
     except Exception as e:
         logger.error(f"Failed to parse CC-CEDICT: {e}")
-
     logger.info(f"CC-CEDICT loaded: {count} entries, {len(_dictionary)} unique words")
 
 
 def _download_cedict():
     for url in CEDICT_MIRRORS:
         try:
-            logger.info(f"Trying: {url}")
             req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-            with urllib.request.urlopen(req, timeout=30) as response:
+            with urllib.request.urlopen(req, timeout=30) as r:
                 with open(CEDICT_GZ, 'wb') as f:
-                    f.write(response.read())
-            with gzip.open(CEDICT_GZ, 'rb') as gz_f:
-                with open(CEDICT_PATH, 'wb') as out_f:
-                    out_f.write(gz_f.read())
+                    f.write(r.read())
+            with gzip.open(CEDICT_GZ, 'rb') as gz:
+                with open(CEDICT_PATH, 'wb') as out:
+                    out.write(gz.read())
             if os.path.exists(CEDICT_GZ):
                 os.remove(CEDICT_GZ)
-            size_mb = os.path.getsize(CEDICT_PATH) / 1024 / 1024
-            logger.info(f"Downloaded: {size_mb:.1f}MB from {url}")
+            logger.info(f"Downloaded CC-CEDICT from {url}")
             return
         except Exception as e:
             logger.warning(f"Mirror failed: {e}")
-    logger.error("All CC-CEDICT mirrors failed.")
     open(CEDICT_PATH, 'w').close()
 
 
@@ -129,10 +97,9 @@ def _parse_cedict_line(line: str) -> Optional[dict]:
         return None
     traditional, simplified, pinyin_raw, defs_raw = m.groups()
     pinyin_display = _pinyin_numbers_to_marks(pinyin_raw)
-    # Lọc bỏ các nghĩa là reference (bắt đầu bằng "see ", "variant of", "abbr.")
     definitions = [
         d.strip() for d in defs_raw.split("/")
-        if d.strip() and not re.match(r'^(see |variant of|abbr\. for|old variant|erhua variant)', d.strip(), re.I)
+        if d.strip() and not re.match(r'^(see |variant of|abbr\. for|old variant)', d.strip(), re.I)
     ]
     pos = _extract_pos(definitions[0] if definitions else "")
     return {
@@ -181,7 +148,6 @@ def _extract_pos(definition: str) -> str:
         (r'\b(pronoun|pron\.)\b', "đại từ"), (r'\b(measure word|MW)\b', "lượng từ"),
         (r'\b(particle)\b', "trợ từ"), (r'\b(conjunction|conj\.)\b', "liên từ"),
         (r'\b(preposition|prep\.)\b', "giới từ"), (r'\b(interjection)\b', "thán từ"),
-        (r'\b(numeral|num\.)\b', "số từ"),
     ]
     dl = definition.lower()
     for pattern, pos_vi in pos_patterns:
@@ -190,25 +156,18 @@ def _extract_pos(definition: str) -> str:
     return "từ"
 
 
-# ─────────────────────────────────────────────
-#  MAIN LOOKUP — trả về đa nghĩa
-# ─────────────────────────────────────────────
+# ── MAIN LOOKUP — có LRU cache ──
 
 def lookup(word: str) -> Optional[dict]:
-    """
-    Tra từ điển CC-CEDICT.
-
-    Returns dict với:
-      - meanings_vi: List[str]  ← NHIỀU nghĩa tiếng Việt
-      - definitions_en: List[str] ← nghĩa tiếng Anh gốc
-      - example: {"zh": "...", "vi": "..."}
-    """
     ensure_loaded()
     word = word.strip()
     if not word:
         return None
 
-    # Tìm tất cả entries (simplified và traditional)
+    # LRU cache hit
+    if word in _lookup_cache:
+        return _lookup_cache[word]
+
     entries = _dictionary.get(word, [])
     if not entries:
         for entries_list in _dictionary.values():
@@ -220,128 +179,94 @@ def lookup(word: str) -> Optional[dict]:
                 break
 
     if not entries:
-        return _fallback_lookup(word)
+        result = _fallback_lookup(word)
+    else:
+        # Thu thập tất cả nghĩa từ mọi entries
+        all_defs: list[str] = []
+        seen: set[str] = set()
+        for entry in entries:
+            for d in entry["definitions"]:
+                if d not in seen:
+                    all_defs.append(d)
+                    seen.add(d)
+        all_defs = all_defs[:8]
 
-    # ── Thu thập TẤT CẢ nghĩa từ tất cả entries ──
-    # Ví dụ: 打 có ~5 entries trong CC-CEDICT với nhiều nghĩa khác nhau
-    all_definitions_en: list[str] = []
-    seen = set()
-    for entry in entries:
-        for d in entry["definitions"]:
-            if d not in seen:
-                all_definitions_en.append(d)
-                seen.add(d)
+        meanings_vi = _translate_definitions_fast(all_defs)
+        example     = _build_example(word, entries)
+        grammar     = f"Từ loại: {entries[0]['pos']}. Có {len(all_defs)} nghĩa trong CC-CEDICT."
 
-    # Lấy tối đa 8 nghĩa (tránh quá dài)
-    all_definitions_en = all_definitions_en[:8]
+        result = {
+            "word":           word,
+            "pinyin":         entries[0]["pinyin"],
+            "meanings_vi":    meanings_vi,
+            "meaning_vi":     meanings_vi[0] if meanings_vi else word,
+            "pos":            entries[0]["pos"],
+            "grammar":        grammar,
+            "example":        example,
+            "audio_url":      f"/api/audio/{_word_to_filename(word)}.mp3",
+            "definitions_en": all_defs,
+        }
 
-    # ── Dịch từng nghĩa sang tiếng Việt ──
-    meanings_vi = _translate_each_definition(all_definitions_en)
+    # Lưu vào cache
+    if result:
+        if len(_lookup_cache) >= MAX_LOOKUP_CACHE:
+            # Xoá entry cũ nhất
+            oldest = next(iter(_lookup_cache))
+            del _lookup_cache[oldest]
+        _lookup_cache[word] = result
 
-    # ── Lấy pinyin từ entry đầu ──
-    pinyin = entries[0]["pinyin"]
-    pos    = entries[0]["pos"]
-
-    # ── Tạo ví dụ câu ──
-    example = _build_example(word, entries)
-
-    # ── Grammar note ──
-    grammar = _build_grammar_note(entries[0], all_definitions_en)
-
-    return {
-        "word":           word,
-        "pinyin":         pinyin,
-        "meanings_vi":    meanings_vi,        # List[str] — ĐA NGHĨA tiếng Việt
-        "meaning_vi":     meanings_vi[0] if meanings_vi else word,  # backward compat
-        "pos":            pos,
-        "grammar":        grammar,
-        "example":        example,
-        "audio_url":      f"/api/audio/{_word_to_filename(word)}.mp3",
-        "definitions_en": all_definitions_en,
-    }
+    return result
 
 
-def _translate_each_definition(definitions: list[str]) -> list[str]:
+def _translate_definitions_fast(definitions: list[str]) -> list[str]:
     """
-    Dịch từng nghĩa tiếng Anh sang tiếng Việt riêng lẻ.
-    Ưu tiên QUICK_TRANSLATE dict, sau đó Google Translate theo batch.
+    Dịch nhanh: ưu tiên static cache → Google Translate chỉ khi cần.
+    Mục tiêu: 0 network request cho 80%+ trường hợp thông thường.
     """
-    if not definitions:
-        return []
+    from services.translation_cache import fast_translate_en_vi
 
-    # Bước 1: Dùng quick translate nếu có
     results = []
-    to_translate_idx = []   # index cần dịch thật
-    to_translate_text = []  # text cần dịch thật
+    need_translate = []   # (index, text) cần Google Translate
+    seen_vi: set[str] = set()
 
     for i, defn in enumerate(definitions):
-        quick = _quick_translate(defn)
-        if quick:
-            results.append(quick)
-        else:
+        vi = fast_translate_en_vi(defn)
+        if vi and vi not in seen_vi:
+            results.append(vi)
+            seen_vi.add(vi)
+        elif vi is None:
+            need_translate.append((len(results), defn))
             results.append(None)  # placeholder
-            to_translate_idx.append(i)
-            to_translate_text.append(defn)
 
-    # Bước 2: Batch translate những cái chưa có
-    if to_translate_text:
-        translated = _batch_translate(to_translate_text)
-        for i, idx in enumerate(to_translate_idx):
-            results[idx] = translated[i] if i < len(translated) else definitions[idx]
+    # Chỉ gọi Google Translate cho phần còn lại (thường rất ít)
+    if need_translate:
+        texts = [t for _, t in need_translate]
+        # Gộp thành 1 request duy nhất để giảm latency
+        try:
+            from deep_translator import GoogleTranslator
+            combined = " | ".join(
+                re.sub(r'^to ', '', t.lower()).strip()
+                for t in texts
+            )
+            translated_combined = GoogleTranslator(source="en", target="vi").translate(combined)
+            parts = [p.strip() for p in translated_combined.split("|")]
 
-    # Lọc bỏ None và deduplicate
-    seen = set()
-    final = []
-    for r in results:
-        if r and r not in seen and r.lower() != r.upper():  # bỏ nếu không dịch được
-            seen.add(r)
-            final.append(r)
+            for j, (idx, _) in enumerate(need_translate):
+                vi = parts[j] if j < len(parts) else texts[j]
+                if vi and vi not in seen_vi:
+                    results[idx] = vi
+                    seen_vi.add(vi)
+                else:
+                    results[idx] = None
+        except Exception as e:
+            logger.warning(f"Google Translate failed: {e}")
+            for idx, text in need_translate:
+                results[idx] = text  # fallback: tiếng Anh
 
-    return final or [definitions[0]]
-
-
-def _quick_translate(en_text: str) -> Optional[str]:
-    """Tra bảng dịch nhanh cho các cụm phổ biến."""
-    en_lower = en_text.lower().strip()
-    # Exact match
-    if en_lower in QUICK_TRANSLATE:
-        return QUICK_TRANSLATE[en_lower]
-    # Partial: "to learn sth" → "to learn" → "học"
-    for key, val in QUICK_TRANSLATE.items():
-        if en_lower.startswith(key):
-            return val
-    return None
-
-
-def _batch_translate(texts: list[str]) -> list[str]:
-    """
-    Dịch batch các định nghĩa tiếng Anh sang tiếng Việt.
-    Gửi từng cái riêng (không ghép chuỗi) để giữ đa nghĩa.
-    """
-    results = []
-    try:
-        from deep_translator import GoogleTranslator
-        translator = GoogleTranslator(source="en", target="vi")
-        for text in texts:
-            try:
-                # Làm sạch: bỏ "(sb)" "(sth)" "(coll.)" v.v.
-                clean = re.sub(r'\(sb\)|\(sth\)|\(coll\.\)|\(lit\.\)|\(fig\.\)', '', text).strip()
-                # Bỏ "to " ở đầu vì tiếng Việt không cần
-                clean = re.sub(r'^to ', '', clean)
-                translated = translator.translate(clean)
-                results.append(translated or text)
-            except Exception:
-                results.append(text)
-    except Exception as e:
-        logger.warning(f"Batch translate failed: {e}")
-        results = texts
-
-    return results
+    return [r for r in results if r]  # bỏ None
 
 
 def _build_example(word: str, entries: list[dict]) -> dict:
-    """Tạo ví dụ câu: {"zh": "...", "vi": "..."}"""
-    # Tìm ví dụ có chứa chữ Hán trong definitions
     for entry in entries:
         for d in entry.get("definitions", []):
             if len(d) > 5 and any('\u4e00' <= c <= '\u9fff' for c in d):
@@ -351,45 +276,22 @@ def _build_example(word: str, entries: list[dict]) -> dict:
                     return {"zh": d, "vi": vi or ""}
                 except Exception:
                     return {"zh": d, "vi": ""}
-
-    # Ví dụ mặc định đơn giản
-    defaults = {
-        "你": {"zh": "你好！", "vi": "Xin chào!"},
-        "我": {"zh": "我是学生。", "vi": "Tôi là học sinh."},
-        "学": {"zh": "我喜欢学习。", "vi": "Tôi thích học tập."},
-        "好": {"zh": "今天天气很好。", "vi": "Hôm nay thời tiết rất đẹp."},
-    }
-    for char, ex in defaults.items():
-        if char in word:
-            return ex
-
     return {"zh": word, "vi": ""}
 
 
-def _build_grammar_note(entry: dict, all_defs: list[str]) -> str:
-    pos = entry.get("pos", "từ")
-    notes = [f"Từ loại: {pos}"]
-    if len(all_defs) > 1:
-        notes.append(f"Có {len(all_defs)} nghĩa trong từ điển CC-CEDICT")
-    return ". ".join(notes)
-
-
 def _fallback_lookup(word: str) -> Optional[dict]:
-    """Fallback khi không tìm thấy trong CC-CEDICT."""
     try:
         pinyin = " ".join(lazy_pinyin(word, style=Style.TONE))
         from deep_translator import GoogleTranslator
         meaning = GoogleTranslator(source="zh-CN", target="vi").translate(word)
         meanings_vi = [meaning] if meaning else [word]
         return {
-            "word":           word,
-            "pinyin":         pinyin,
-            "meanings_vi":    meanings_vi,
-            "meaning_vi":     meanings_vi[0],
-            "pos":            "từ",
-            "grammar":        "Không tìm thấy trong CC-CEDICT. Dùng Google Translate.",
-            "example":        {"zh": word, "vi": meaning or ""},
-            "audio_url":      f"/api/audio/{_word_to_filename(word)}.mp3",
+            "word": word, "pinyin": pinyin,
+            "meanings_vi": meanings_vi, "meaning_vi": meanings_vi[0],
+            "pos": "từ",
+            "grammar": "Không có trong CC-CEDICT. Dùng Google Translate.",
+            "example": {"zh": word, "vi": meaning or ""},
+            "audio_url": f"/api/audio/{_word_to_filename(word)}.mp3",
             "definitions_en": [],
         }
     except Exception as e:
