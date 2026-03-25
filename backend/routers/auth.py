@@ -66,6 +66,7 @@ class UserResponse(BaseModel):
     id: int
     username: str
     email: str
+    role: str          # 'user' | 'admin'
     created_at: str
 
     class Config:
@@ -149,5 +150,6 @@ def get_me(current_user: User = Depends(get_current_user)):
         id=current_user.id,
         username=current_user.username,
         email=current_user.email,
+        role=current_user.role,        # thêm dòng này
         created_at=current_user.created_at.isoformat(),
     )

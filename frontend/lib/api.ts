@@ -65,7 +65,8 @@ export const dictionaryApi = {
 
 // ── Types ──
 export interface TokenResponse { access_token: string; refresh_token: string }
-export interface UserInfo { id: number; username: string; email: string; created_at: string }
+// export interface UserInfo { id: number; username: string; email: string; created_at: string }
+export interface UserInfo { id: number; username: string; email: string; role: string; created_at: string }
 export interface AnalyzeJobResponse { job_id: number; status: string; message: string }
 export interface JobStatus {
   id: number; status: 'queued' | 'processing' | 'done' | 'failed'; progress: number

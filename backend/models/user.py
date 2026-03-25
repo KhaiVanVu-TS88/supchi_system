@@ -1,8 +1,5 @@
 """
-models/user.py — SQLAlchemy model cho bảng Users
-
-Schema:
-  users(id, username, email, password_hash, is_active, created_at)
+models/user.py — Updated: thêm cột role
 """
 from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
@@ -18,10 +15,14 @@ class User(Base):
     email         = Column(String(255), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
     is_active     = Column(Boolean, default=True, nullable=False)
+    role          = Column(String(20), default="user", nullable=False, index=True)
     created_at    = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
-    # Relationship: một user có nhiều videos
     videos = relationship("Video", back_populates="user", cascade="all, delete-orphan")
 
+    @property
+    def is_admin(self) -> bool:
+        return self.role == "admin"
+
     def __repr__(self):
-        return f"<User id={self.id} username={self.username}>"
+        return f"<User id={self.id} username={self.username} role={self.role}>"

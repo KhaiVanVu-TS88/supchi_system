@@ -1,8 +1,4 @@
-/* styles/globals.css */
-
-/* ===== GOOGLE FONTS =====
-   PHẢI đặt @import TRƯỚC @tailwind — nếu không PostCSS sẽ bỏ qua
-*/
+/* styles/globals.css — Mobile-first v3 */
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;700&display=swap');
 
 @tailwind base;
@@ -16,12 +12,16 @@
     *::before,
     *::after {
         box-sizing: border-box;
+        margin: 0;
     }
 
     html {
         scroll-behavior: smooth;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+        -webkit-text-size-adjust: 100%;
+        /* iOS rotation zoom fix */
+        text-size-adjust: 100%;
     }
 
     body {
@@ -31,24 +31,43 @@
         color: #f0ede8;
         font-family: 'DM Sans', sans-serif;
         min-height: 100vh;
+        min-height: 100dvh;
+        /* Dynamic viewport height (mobile browser chrome) */
+        overflow-x: hidden;
+        /* Smooth scroll on iOS */
+        -webkit-overflow-scrolling: touch;
     }
 
-    ::-webkit-scrollbar {
-        width: 4px;
-        height: 4px;
+    /* Scrollbar — hidden on mobile, thin on desktop */
+    @media (min-width: 768px) {
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(245, 200, 66, 0.25);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(245, 200, 66, 0.45);
+        }
     }
 
-    ::-webkit-scrollbar-track {
-        background: transparent;
+    /* Tap highlight */
+    * {
+        -webkit-tap-highlight-color: transparent;
     }
 
-    ::-webkit-scrollbar-thumb {
-        background: rgba(245, 200, 66, 0.25);
-        border-radius: 10px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-        background: rgba(245, 200, 66, 0.45);
+    /* Links */
+    a {
+        color: inherit;
+        text-decoration: none;
     }
 }
 
@@ -63,41 +82,51 @@
         border: 1px solid rgba(255, 255, 255, 0.07);
     }
 
-    /* Subtitle card — trạng thái bình thường */
+    /* ── Subtitle card ── */
     .sub-card {
         position: relative;
-        border-radius: 0.75rem;
-        padding: 1rem 1.25rem;
+        border-radius: 0.875rem;
+        /* Tăng padding trên mobile cho tap target lớn hơn */
+        padding: 1rem;
         cursor: pointer;
-        transition: all 0.2s;
+        transition: background 0.15s, border-color 0.15s, transform 0.15s;
         background: rgba(255, 255, 255, 0.03);
         border: 1px solid rgba(255, 255, 255, 0.06);
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
     }
 
-    .sub-card:hover {
-        background: rgba(255, 255, 255, 0.055);
-        border-color: rgba(255, 255, 255, 0.1);
-        transform: translateX(3px);
+    /* Hover chỉ trên thiết bị có hover (tránh sticky state trên touch) */
+    @media (hover: hover) {
+        .sub-card:hover {
+            background: rgba(255, 255, 255, 0.055);
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: translateX(3px);
+        }
     }
 
-    /* Thanh accent trái */
+    /* Active state cho touch */
+    .sub-card:active {
+        background: rgba(255, 255, 255, 0.07);
+        transform: scale(0.99);
+    }
+
     .sub-card::before {
         content: '';
         position: absolute;
         left: 0;
-        top: 12px;
-        bottom: 12px;
-        width: 2.5px;
+        top: 14px;
+        bottom: 14px;
+        width: 3px;
         background: rgba(255, 255, 255, 0.1);
-        border-radius: 0 2px 2px 0;
+        border-radius: 0 3px 3px 0;
         transition: background 0.2s;
     }
 
-    /* Subtitle card — đang active */
     .sub-card-active {
         background: rgba(245, 200, 66, 0.08) !important;
         border-color: rgba(245, 200, 66, 0.3) !important;
-        transform: translateX(5px) !important;
+        transform: translateX(4px) !important;
         box-shadow: 0 4px 24px rgba(245, 200, 66, 0.1), inset 0 0 0 1px rgba(245, 200, 66, 0.15);
     }
 
@@ -105,7 +134,7 @@
         background: linear-gradient(180deg, #f5c842, #f0a855) !important;
     }
 
-    /* Skeleton loading */
+    /* ── Skeleton loader ── */
     .skeleton {
         background: linear-gradient(90deg,
                 rgba(255, 255, 255, 0.03) 0%,
@@ -116,19 +145,32 @@
         border-radius: 6px;
     }
 
-    /* Input URL */
+    /* ── URL Input ──
+     font-size: 16px pada mobile → iOS tidak zoom saat focus
+  */
     .url-input {
         width: 100%;
         background: rgba(22, 22, 42, 0.8);
-        border-radius: 0.75rem;
-        padding: 0.875rem 1rem 0.875rem 2.75rem;
+        border-radius: 0.875rem;
+        padding: 0.9375rem 1rem 0.9375rem 2.75rem;
         color: #f0ede8;
         font-family: 'DM Sans', sans-serif;
-        font-size: 0.875rem;
+        font-size: 16px;
+        /* iOS zoom prevention */
+        line-height: 1.5;
         outline: none;
-        transition: all 0.2s;
+        transition: border-color 0.2s, box-shadow 0.2s;
         border: 1.5px solid rgba(255, 255, 255, 0.08);
         caret-color: #f5c842;
+        -webkit-appearance: none;
+        /* Remove iOS default styling */
+    }
+
+    @media (min-width: 640px) {
+        .url-input {
+            font-size: 0.9375rem;
+            padding: 0.875rem 1rem 0.875rem 2.75rem;
+        }
     }
 
     .url-input::placeholder {
@@ -140,35 +182,95 @@
         box-shadow: 0 0 0 3px rgba(245, 200, 66, 0.08);
     }
 
-    /* Nút primary */
+    /* ── Button primary ──
+     min-height: 48px cho touch targets (WCAG 2.5.5 AAA = 44px)
+  */
     .btn-primary {
         position: relative;
         overflow: hidden;
-        border-radius: 0.75rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.875rem;
         padding: 0.875rem 1.5rem;
         font-family: 'DM Sans', sans-serif;
         font-weight: 600;
-        font-size: 0.875rem;
+        font-size: 0.9375rem;
         letter-spacing: 0.02em;
-        transition: all 0.2s;
+        transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
         background: linear-gradient(135deg, #f5c842, #f0a855);
         color: #0f0f1a;
         border: none;
         cursor: pointer;
+        min-height: 48px;
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
     }
 
-    .btn-primary:hover:not(:disabled) {
-        transform: translateY(-1px);
-        box-shadow: 0 8px 28px rgba(245, 200, 66, 0.3);
+    @media (hover: hover) {
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 28px rgba(245, 200, 66, 0.3);
+        }
     }
 
     .btn-primary:active:not(:disabled) {
-        transform: translateY(0);
+        transform: scale(0.97);
     }
 
     .btn-primary:disabled {
-        opacity: 0.45;
+        opacity: 0.4;
         cursor: not-allowed;
+    }
+
+    /* ── Bottom navigation (mobile only) ── */
+    .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(12, 12, 22, 0.97);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        /* Safe area for iPhone home indicator */
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+        z-index: 50;
+    }
+
+    /* Padding bù bottom nav */
+    .pb-bottom-nav {
+        padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    }
+
+    /* ── Safe area utilities ── */
+    .pt-safe {
+        padding-top: env(safe-area-inset-top, 0px);
+    }
+
+    .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+}
+
+/* ===== UTILITIES ===== */
+@layer utilities {
+
+    /* Smooth momentum scroll */
+    .scroll-smooth-ios {
+        -webkit-overflow-scrolling: touch;
+        scroll-behavior: smooth;
+    }
+
+    /* Prevent text selection on interactive elements */
+    .no-select {
+        -webkit-user-select: none;
+        user-select: none;
+    }
+
+    /* Aspect ratio 16:9 (đã có trong Tailwind nhưng đề phòng) */
+    .aspect-video {
+        aspect-ratio: 16 / 9;
     }
 }
 
@@ -186,7 +288,7 @@
 @keyframes slide-up {
     from {
         opacity: 0;
-        transform: translateY(14px);
+        transform: translateY(16px);
     }
 
     to {
@@ -205,15 +307,27 @@
     }
 }
 
+@keyframes pulse-dot {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.3;
+    }
+}
+
 .animate-slide-up {
-    animation: slide-up 0.4s ease-out both;
+    animation: slide-up 0.35s ease-out both;
 }
 
 .animate-fade-in {
-    animation: fade-in 0.3s ease-out both;
+    animation: fade-in 0.25s ease-out both;
 }
 
-/* Staggered entrance cho subtitle list */
+/* Stagger animation delays cho list items */
 .stagger>*:nth-child(1) {
     animation-delay: 0.03s;
 }
@@ -232,4 +346,205 @@
 
 .stagger>*:nth-child(5) {
     animation-delay: 0.15s;
+}
+
+.stagger>*:nth-child(6) {
+    animation-delay: 0.18s;
+}
+
+/* ===== PRINT ===== */
+@media print {
+
+    .bottom-nav,
+    .btn-primary {
+        display: none !important;
+    }
+
+    body {
+        background: white;
+        color: black;
+    }
+}
+
+/* ── animate-pop (dùng trong DictionaryCard) ── */
+@keyframes pop {
+    0% {
+        opacity: 0;
+        transform: scale(0.95) translateY(8px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.animate-pop {
+    animation: pop 0.3s ease-out both;
+}
+
+/* ── line-clamp (dùng trong VideoCard title) ── */
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* ── svh / dvh fallback cho browser cũ ── */
+.h-svh {
+    height: 100svh;
+}
+
+.h-dvh {
+    height: 100dvh;
+}
+
+.min-h-svh {
+    min-height: 100svh;
+}
+
+/*
+ * Video page: khi có video, layout phải vừa khít màn hình
+ * Dùng JS inline style thay vì class để tránh Tailwind purge
+ */
+
+/* ── Flow transition animations ── */
+
+/* Video/subtitle trượt từ trên xuống khi xuất hiện */
+@keyframes slide-down {
+    from {
+        opacity: 0;
+        transform: translateY(-12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-slide-down {
+    animation: slide-down 0.4s ease-out both;
+}
+
+/* Bounce dots loading */
+@keyframes bounce-dot {
+
+    0%,
+    100% {
+        transform: translateY(0);
+        opacity: 0.4;
+    }
+
+    50% {
+        transform: translateY(-6px);
+        opacity: 1;
+    }
+}
+
+/* Vẽ dấu check (dùng stroke-dashoffset) */
+@keyframes draw-check {
+    from {
+        stroke-dashoffset: 30;
+    }
+
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+/* ════════════════════════════════════════════════════════
+   VIDEO PAGE LAYOUT
+   Tách ra thành CSS class riêng để dễ debug và override.
+
+   Mobile (default):
+     .layout-root         → full screen, flex column
+     .layout-content      → flex column, chiếm hết sau navbar
+     .layout-video-col    → flex-shrink-0, full width
+     .layout-subtitle-col → flex-1, scroll độc lập
+
+   Desktop (lg = 1024px+):
+     .layout-content      → flex ROW (2 cột)
+     .layout-video-col    → 52% width, scroll doc cả cột
+     .layout-subtitle-col → 48% còn lại, scroll độc lập
+════════════════════════════════════════════════════════ */
+
+/* Root wrapper: full screen height, flex column, không cuộn tổng thể */
+.layout-root {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    /* dvh = dynamic viewport height, xử lý đúng browser chrome */
+    overflow: hidden;
+}
+
+/*
+ * Content area (phần dưới Navbar):
+ * - flex-1: chiếm hết chiều cao còn lại sau navbar
+ * - overflow-hidden: bắt buộc để flex-1 trên subtitle hoạt động
+ *   (nếu không có overflow-hidden, flex-1 sẽ không giới hạn chiều cao)
+ * - Mobile: flex-col → Video trên, Subtitle dưới
+ */
+.layout-content {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    /* Mobile: xếp dọc */
+}
+
+/*
+ * Video column:
+ * - flex-shrink-0: KHÔNG bị nén, luôn giữ kích thước tự nhiên
+ * - w-full: full width trên mobile
+ * - bg-ink-900: nền tối để video không bị viền trắng
+ * - border-b: đường kẻ ngăn cách video và subtitle trên mobile
+ */
+.layout-video-col {
+    flex-shrink: 0;
+    width: 100%;
+    background-color: #0f0f1a;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    flex-direction: column;
+}
+
+/*
+ * Subtitle column:
+ * - flex: 1 → chiếm toàn bộ không gian còn lại (= màn hình - navbar - video)
+ * - overflow-y: auto → CHỈ vùng này cuộn, video và navbar đứng yên
+ * - -webkit-overflow-scrolling: touch → scroll mượt trên iOS
+ * - overscroll-behavior: contain → ngăn scroll tràn sang trang chính
+ */
+.layout-subtitle-col {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding: 12px 12px 24px;
+}
+
+/* ── Desktop: 1024px+ ── */
+@media (min-width: 1024px) {
+
+    /* Đổi từ dọc sang ngang */
+    .layout-content {
+        flex-direction: row;
+    }
+
+    /* Video: 52% chiều rộng, có thể scroll dọc nếu nội dung dài */
+    .layout-video-col {
+        width: 52%;
+        flex-shrink: 0;
+        border-bottom: none;
+        border-right: 1px solid rgba(255, 255, 255, 0.06);
+        overflow-y: auto;
+    }
+
+    /* Subtitle: chiếm 48% còn lại */
+    .layout-subtitle-col {
+        padding: 16px 20px 24px;
+    }
 }

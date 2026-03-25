@@ -1,7 +1,7 @@
 /**
- * pages/dictionary/index.tsx v2
+ * pages/dictionary/index.tsx
  */
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import Navbar from '../../components/layout/Navbar'
@@ -46,55 +46,56 @@ export default function DictionaryPage() {
         }
     }, [])
 
-    useEffect(() => {
-        setRecent(getRecent())
-    }, [])
+    useEffect(() => { setRecent(getRecent()) }, [])
 
     useEffect(() => {
         const q = router.query.q as string | undefined
-        if (q) {
-            setQuery(q)
-            doSearch(q)
-        }
+        if (q) { setQuery(q); doSearch(q) }
     }, [router.query.q, doSearch])
 
     const handleKey = (e: React.KeyboardEvent) => { if (e.key === 'Enter') doSearch(query) }
 
-    const meanings = entry?.meanings_vi?.length
-        ? entry.meanings_vi
-        : entry?.meaning_vi ? [entry.meaning_vi] : []
-
     return (
         <>
             <Head><title>Từ điển tiếng Trung — 學中文</title></Head>
-            <div className="min-h-screen flex flex-col">
+            <div className="min-h-screen flex flex-col pb-bottom-nav md:pb-0">
                 <Navbar />
-                <main className="flex-1 max-w-2xl mx-auto w-full px-6 py-10">
+                <main className="flex-1 w-full max-w-2xl mx-auto px-4 sm:px-6 py-5 sm:py-10">
 
-                    <div className="mb-8">
-                        <h1 className="font-serif text-3xl font-bold text-snow mb-1">📖 Từ điển tiếng Trung</h1>
-                        <p className="text-ghost text-sm">CC-CEDICT · 120,000+ từ · Đa nghĩa · Pinyin · Phát âm</p>
+                    {/* Header */}
+                    <div className="mb-4 sm:mb-8">
+                        <h1 className="font-serif text-2xl sm:text-3xl font-bold text-snow mb-0.5">
+                            📖 Từ điển
+                        </h1>
+                        <p className="text-ghost text-xs sm:text-sm">
+                            CC-CEDICT · 120,000+ từ · Pinyin · Phát âm
+                        </p>
                     </div>
 
-                    {/* Search */}
-                    <div className="flex gap-3 mb-6">
+                    {/* Search — input full width + nút bên phải */}
+                    <div className="flex gap-2 mb-4 sm:mb-6">
                         <div className="relative flex-1">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ghost pointer-events-none">
+                            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ghost pointer-events-none">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
                                 </svg>
                             </span>
                             <input
-                                type="text" autoFocus
-                                placeholder="Nhập từ tiếng Trung... (ví dụ: 学习)"
+                                type="search"
+                                autoFocus
+                                inputMode="text"
+                                placeholder="Nhập chữ Hán... (学习)"
                                 value={query}
                                 onChange={e => setQuery(e.target.value)}
                                 onKeyDown={handleKey}
-                                className="url-input"
-                                style={{ paddingLeft: '2.5rem' }}
+                                className="url-input pl-10"
                             />
                         </div>
-                        <button onClick={() => doSearch(query)} disabled={loading || !query.trim()} className="btn-primary px-5 flex-shrink-0">
+                        <button
+                            onClick={() => doSearch(query)}
+                            disabled={loading || !query.trim()}
+                            className="btn-primary px-4 sm:px-5 flex-shrink-0 min-w-[72px]"
+                        >
                             {loading
                                 ? <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                     <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
@@ -105,14 +106,18 @@ export default function DictionaryPage() {
                         </button>
                     </div>
 
-                    {/* Recent */}
+                    {/* Từ gần đây */}
                     {!entry && !loading && recent.length > 0 && (
-                        <div className="mb-5">
-                            <p className="text-[11px] text-ghost uppercase tracking-wider mb-2">Tra gần đây</p>
-                            <div className="flex flex-wrap gap-2">
+                        <div className="mb-4">
+                            <p className="text-[11px] text-ghost uppercase tracking-wider mb-2">Gần đây</p>
+                            <div className="flex flex-wrap gap-1.5">
                                 {recent.map(w => (
-                                    <button key={w} onClick={() => { setQuery(w); doSearch(w) }}
-                                        className="font-serif text-base px-3 py-1.5 glass rounded-lg hover:bg-amber-glow/10 hover:text-amber-glow transition-colors text-snow">
+                                    <button key={w}
+                                        onClick={() => { setQuery(w); doSearch(w) }}
+                                        className="font-serif text-base px-3 py-1.5 glass rounded-lg
+                               active:bg-amber-glow/10 active:text-amber-glow
+                               hover:bg-amber-glow/10 hover:text-amber-glow
+                               transition-colors text-snow min-h-[44px]">
                                         {w}
                                     </button>
                                 ))}
@@ -120,14 +125,17 @@ export default function DictionaryPage() {
                         </div>
                     )}
 
-                    {/* Sample */}
+                    {/* Từ mẫu */}
                     {!entry && !loading && (
-                        <div className="mb-6">
+                        <div className="mb-5">
                             <p className="text-[11px] text-ghost uppercase tracking-wider mb-2">Thử tra</p>
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-wrap gap-1.5">
                                 {SAMPLE_WORDS.map(w => (
-                                    <button key={w} onClick={() => { setQuery(w); doSearch(w) }}
-                                        className="font-serif text-sm px-3 py-1.5 bg-white/4 hover:bg-white/8 rounded-lg text-mist hover:text-snow transition-colors">
+                                    <button key={w}
+                                        onClick={() => { setQuery(w); doSearch(w) }}
+                                        className="font-serif text-sm px-3 py-2 bg-white/4 hover:bg-white/8
+                               active:bg-white/8 rounded-lg text-mist hover:text-snow
+                               transition-colors min-h-[44px]">
                                         {w}
                                     </button>
                                 ))}
@@ -135,18 +143,21 @@ export default function DictionaryPage() {
                         </div>
                     )}
 
+                    {/* Error */}
                     {error && (
-                        <div className="glass rounded-xl px-4 py-3 border border-red-500/20 text-red-400 text-sm animate-fade-in">
+                        <div className="glass rounded-xl px-4 py-3 border border-red-500/20 text-red-400 text-sm mb-4">
                             {error}
                         </div>
                     )}
 
+                    {/* Loading skeleton */}
                     {loading && (
-                        <div className="glass rounded-2xl p-6 space-y-4 animate-pulse">
+                        <div className="glass rounded-2xl p-5 sm:p-6 space-y-4 animate-pulse">
                             <div className="flex justify-between items-start">
                                 <div className="space-y-2">
-                                    <div className="skeleton h-12 w-28 rounded" />
+                                    <div className="skeleton h-12 w-24 sm:w-28 rounded" />
                                     <div className="skeleton h-4 w-20 rounded" />
+                                    <div className="skeleton h-5 w-16 rounded-full" />
                                 </div>
                                 <div className="skeleton w-12 h-12 rounded-xl" />
                             </div>
@@ -161,7 +172,6 @@ export default function DictionaryPage() {
                     )}
 
                     {entry && !loading && <DictionaryCard entry={entry} backendUrl={BACKEND_URL} />}
-
                 </main>
             </div>
         </>

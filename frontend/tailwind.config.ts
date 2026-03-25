@@ -33,6 +33,17 @@ module.exports = {
         mist: 'rgba(240,237,232,0.6)',
         ghost: 'rgba(240,237,232,0.3)',
       },
+      // ── Thêm h-dvh, min-h-dvh cho dynamic viewport height ──
+      height: {
+        dvh: '100dvh',
+      },
+      minHeight: {
+        dvh: '100dvh',
+      },
+      // top-14 = 56px = chiều cao navbar
+      top: {
+        14: '3.5rem',
+      },
       keyframes: {
         'slide-up': {
           '0%': { opacity: '0', transform: 'translateY(12px)' },
@@ -50,10 +61,15 @@ module.exports = {
           '0%': { backgroundPosition: '-200% 0' },
           '100%': { backgroundPosition: '200% 0' },
         },
+        'slide-down': {
+          '0%': { opacity: '0', transform: 'translateY(-8px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
       },
       animation: {
-        'slide-up': 'slide-up 0.4s ease-out',
-        'fade-in': 'fade-in 0.3s ease-out',
+        'slide-up': 'slide-up 0.35s ease-out',
+        'slide-down': 'slide-down 0.2s ease-out',
+        'fade-in': 'fade-in 0.25s ease-out',
         'pulse-amber': 'pulse-amber 2s ease-in-out infinite',
         shimmer: 'shimmer 2s linear infinite',
       },
