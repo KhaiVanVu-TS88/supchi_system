@@ -1,7 +1,34 @@
-# ===== DOCKER COMPOSE v3.2 — optimized =====
+# ===== DOCKER COMPOSE v4.0 — SCALABLE & PRODUCTION-READY =====
+# ============================================================
+# Tối ưu: Multiple queues, Redis cache, Celery Beat, Monitoring
+# ============================================================
 
 services:
 
+  # ───────────────────────────────────────────
+  # REDIS — Cache + Message Broker
+  # ───────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: supchi4-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    # maxmemory-policy: xóa keys ít dùng nhất khi hết RAM
+    restart: unless-stopped
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ───────────────────────────────────────────
+  # BACKEND API — FastAPI
+  # ───────────────────────────────────────────
   backend:
     build:
       context: ./backend
@@ -13,7 +40,8 @@ services:
       - PYTHONUNBUFFERED=1
       - SECRET_KEY=${SECRET_KEY:-supchi4-change-in-production}
       - DATABASE_URL=sqlite:////data/supchi4.db
-      - REDIS_URL=redis://localhost:6379/0
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_CACHE_URL=redis://redis:6379/1
       - FRONTEND_URL=http://localhost:3000
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - HF_ENDPOINT=https://hf-mirror.com
@@ -22,20 +50,22 @@ services:
       - HTTPS_PROXY=http://172.25.80.1:7897
       - http_proxy=http://172.25.80.1:7897
       - https_proxy=http://172.25.80.1:7897
-      - NO_PROXY=localhost,127.0.0.1,backend,worker
-      - no_proxy=localhost,127.0.0.1,backend,worker
-      # EasyOCR lưu model cache vào volume (không tải lại mỗi restart)
+      - NO_PROXY=localhost,127.0.0.1,backend,worker,redis
+      - no_proxy=localhost,127.0.0.1,backend,worker,redis
       - EASYOCR_MODULE_PATH=/easyocr_models
     volumes:
       - whisper_cache:/root/.cache/huggingface
       - sqlite_data:/data
-      - easyocr_cache:/easyocr_models   # ← cache EasyOCR model
+      - easyocr_cache:/easyocr_models
+    depends_on:
+      redis:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - app-network
     deploy:
       resources:
-        limits:    { memory: 2G }        # Tăng lên vì EasyOCR cần thêm RAM
+        limits:    { memory: 2G }
         reservations: { memory: 512M }
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -44,36 +74,46 @@ services:
       retries: 3
       start_period: 60s
 
-  worker:
+  # ───────────────────────────────────────────
+  # WORKER VIDEO — Celery (Heavy AI tasks)
+  # ───────────────────────────────────────────
+  worker-video:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: supchi4-worker
+    container_name: supchi4-worker-video
     command: >
       bash -c "
-        sleep 15 &&
+        sleep 20 &&
         celery -A worker.celery_app worker
-        --loglevel=info
+        --loglevel=INFO
         --concurrency=1
-        --max-tasks-per-child=10
+        --max-tasks-per-child=5
+        --max-memory-per-child=4096000
+        -Q video_queue
+        --hostname=video-worker@%h
       "
     environment:
       - PYTHONUNBUFFERED=1
       - SECRET_KEY=${SECRET_KEY:-supchi4-change-in-production}
       - DATABASE_URL=sqlite:////data/supchi4.db
-      - REDIS_URL=redis://backend:6379/0
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_CACHE_URL=redis://redis:6379/1
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - HF_ENDPOINT=https://hf-mirror.com
       - HTTP_PROXY=http://172.25.80.1:7897
       - HTTPS_PROXY=http://172.25.80.1:7897
       - http_proxy=http://172.25.80.1:7897
       - https_proxy=http://172.25.80.1:7897
-      - NO_PROXY=localhost,127.0.0.1,backend,worker
-      - no_proxy=localhost,127.0.0.1,backend,worker
+      - NO_PROXY=localhost,127.0.0.1,backend,worker,redis
+      - no_proxy=localhost,127.0.0.1,backend,worker,redis
     volumes:
       - whisper_cache:/root/.cache/huggingface
       - sqlite_data:/data
+      - easyocr_cache:/easyocr_models
     depends_on:
+      redis:
+        condition: service_healthy
       backend:
         condition: service_healthy
     restart: unless-stopped
@@ -81,9 +121,91 @@ services:
       - app-network
     deploy:
       resources:
-        limits:    { memory: 4G }
+        limits:    { memory: 4G }      # Whisper cần nhiều RAM
         reservations: { memory: 1G }
+    # Chỉ nhận task từ video_queue
 
+  # ───────────────────────────────────────────
+  # WORKER OCR — Celery (Light tasks)
+  # ───────────────────────────────────────────
+  worker-ocr:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: supchi4-worker-ocr
+    command: >
+      bash -c "
+        sleep 10 &&
+        celery -A worker.celery_app worker
+        --loglevel=INFO
+        --concurrency=2
+        --max-tasks-per-child=10
+        --max-memory-per-child=1536000
+        -Q ocr_queue,celery
+        --hostname=ocr-worker@%h
+      "
+    environment:
+      - PYTHONUNBUFFERED=1
+      - SECRET_KEY=${SECRET_KEY:-supchi4-change-in-production}
+      - DATABASE_URL=sqlite:////data/supchi4.db
+      - REDIS_URL=redis://redis:6379/0
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - HF_ENDPOINT=https://hf-mirror.com
+      - HTTP_PROXY=http://172.25.80.1:7897
+      - HTTPS_PROXY=http://172.25.80.1:7897
+      - http_proxy=http://172.25.80.1:7897
+      - https_proxy=http://172.25.80.1:7897
+      - NO_PROXY=localhost,127.0.0.1,backend,worker,redis
+      - no_proxy=localhost,127.0.0.1,backend,worker,redis
+    volumes:
+      - sqlite_data:/data
+      - easyocr_cache:/easyocr_models
+    depends_on:
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:    { memory: 2G }
+        reservations: { memory: 512M }
+
+  # ───────────────────────────────────────────
+  # CELERY BEAT — Scheduler cho periodic tasks
+  # ───────────────────────────────────────────
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: supchi4-celery-beat
+    command: >
+      celery -A worker.celery_app beat
+      --loglevel=INFO
+      --scheduler=celery.beat.PersistentScheduler
+      --schedule=/data/celerybeat-schedule
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DATABASE_URL=sqlite:////data/supchi4.db
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - sqlite_data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:    { memory: 256M }
+        reservations: { memory: 64M }
+
+  # ───────────────────────────────────────────
+  # FRONTEND — Next.js
+  # ───────────────────────────────────────────
   frontend:
     build:
       context: ./frontend
@@ -102,6 +224,36 @@ services:
     networks:
       - app-network
 
+  # ───────────────────────────────────────────
+  # MONITORING — Flower (Celery monitoring)
+  # ───────────────────────────────────────────
+  flower:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: supchi4-flower
+    ports:
+      - "5555:5555"
+    command: >
+      celery -A worker.celery_app flower
+      --port=5555
+      --broker=redis://redis:6379/0
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - app-network
+    profiles:
+      - monitoring  # Chỉ chạy khi: docker compose --profile monitoring up
+    deploy:
+      resources:
+        limits:    { memory: 256M }
+        reservations: { memory: 64M }
+
+
 networks:
   app-network:
     driver: bridge
@@ -109,4 +261,5 @@ networks:
 volumes:
   sqlite_data:
   whisper_cache:
-  easyocr_cache:     # ← EasyOCR model cache
+  easyocr_cache:
+  redis_data:

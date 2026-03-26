@@ -25,6 +25,7 @@ export default function HomePage() {
     const [jobId, setJobId] = useState<number | null>(null)
     const [result, setResult] = useState<VideoDetail | null>(null)
     const [currentTime, setCurrentTime] = useState(0)
+    const [isPaused, setIsPaused] = useState(false)
     const [errorMsg, setErrorMsg] = useState<string | null>(null)
     const subtitleRef = useRef<HTMLDivElement>(null)
 
@@ -32,8 +33,32 @@ export default function HomePage() {
         if (!user) { window.location.href = '/auth/login'; return }
         setStage('queued'); setErrorMsg(null); setResult(null); setJobId(null)
         try {
-            const { job_id } = await videosApi.analyze(url)
-            setJobId(job_id)
+            const response = await videosApi.analyze(url)
+
+            if (response.source === 'cached' && response.video_id) {
+                setStage('transitioning')
+                try {
+                    const video = await videosApi.get(response.video_id)
+                    await new Promise(r => setTimeout(r, 800))
+                    setResult(video); setStage('result')
+                    setTimeout(() => subtitleRef.current?.scrollTo({ top: 0 }), 100)
+                } catch {
+                    setErrorMsg('Không tải được video. Vào Lịch sử để xem.')
+                    setStage('error')
+                }
+                return
+            }
+
+            if (response.source === 'processing' && response.job_id) {
+                setJobId(response.job_id)
+                return
+            }
+
+            if (response.job_id) {
+                setJobId(response.job_id)
+            } else {
+                throw new Error('Không nhận được job ID.')
+            }
         } catch (e) {
             setErrorMsg(e instanceof Error ? e.message : 'Có lỗi xảy ra.')
             setStage('error')
@@ -67,9 +92,7 @@ export default function HomePage() {
                 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
             </Head>
 
-            {/* ══════════════════════════════════════════════
-          IDLE / QUEUED / TRANSITIONING / ERROR
-      ══════════════════════════════════════════════ */}
+            {/* ── IDLE / QUEUED / TRANSITIONING / ERROR ── */}
             {!hasResult && (
                 <div className="min-h-screen flex flex-col">
                     <Navbar />
@@ -195,62 +218,35 @@ export default function HomePage() {
                 </div>
             )}
 
-            {/* ══════════════════════════════════════════════════════
-          RESULT — layout responsive tự động
-
-          NGUYÊN TẮC (giống Bootstrap):
-          - Mặc định: flex-col  → tất cả xếp DỌC (mobile first)
-          - lg (1024px+): flex-row → 2 cột NGANG
-
-          Không cần JS, không cần media query CSS riêng,
-          chỉ cần Tailwind breakpoint prefix: lg:flex-row
-      ══════════════════════════════════════════════════════ */}
+            {/* ── RESULT — FULL SCREEN LAYOUT ── */}
             {hasResult && result && (
                 <div
-                    className="flex flex-col"
-                    style={{ height: '100dvh', overflow: 'hidden' }}
+                    className="flex flex-col overflow-hidden"
+                    style={{ height: '100dvh' }}
                 >
-                    {/* 1. NAVBAR — luôn ở trên cùng */}
+                    {/* NAVBAR */}
                     <Navbar />
 
-                    {/*
-           * 2+3. CONTENT WRAPPER
-           *
-           * KEY: flex-col (mobile) → tự chuyển sang flex-row (desktop)
-           * Đây là cơ chế hoạt động giống Bootstrap .row:
-           *
-           * Mobile (<lg):   flex-col → Video trên, Subtitle dưới
-           *                 [Navbar ]
-           *                 [Video  ]  ← flex-shrink-0
-           *                 [Subtitle] ← flex-1, scroll
-           *
-           * Desktop (lg+):  flex-row → 2 cột ngang
-           *                 [Navbar              ]
-           *                 [Video 52% | Sub 48% ]
-           */}
-                    <div
-                        className="flex-1 flex flex-col lg:flex-row overflow-hidden"
-                    >
+                    {/* MAIN CONTENT */}
+                    {/* Desktop: 2 cột ngang | Mobile: 2 hàng dọc */}
+                    <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
 
-                        {/* ── 2. VIDEO ──
-             * flex-shrink-0:  KHÔNG bao giờ bị nén → video luôn hiển thị đầy đủ
-             * w-full:         Full width trên mobile
-             * lg:w-[52%]:     52% trên desktop
-             * KHÔNG có overflow-hidden ở đây → tránh phá layout con bên trong
-             */}
+                        {/* ── LEFT: VIDEO ── */}
                         <div className="flex-shrink-0 w-full lg:w-[52%]
                             flex flex-col
-                            border-b border-white/6 lg:border-b-0 lg:border-r">
+                            border-b-2 border-white/6 lg:border-b-0 lg:border-r-2 lg:border-r-white/6">
 
+                            {/* Video player */}
                             <VideoPlayer
                                 videoId={result.video_id}
                                 onTimeUpdate={setCurrentTime}
+                                onPausedChange={setIsPaused}
                                 compact
                             />
 
-                            {/* Toolbar mini — chỉ mobile */}
+                            {/* Toolbar mobile */}
                             <div className="lg:hidden flex items-center gap-2 px-3 py-2
-                              bg-ink-900 border-b border-white/6">
+                              bg-ink-900 border-b border-white/6 flex-shrink-0">
                                 <span className="flex items-center gap-1.5 text-xs text-ghost">
                                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
                                         stroke="currentColor" strokeWidth="2">
@@ -272,48 +268,35 @@ export default function HomePage() {
                                 </Link>
                             </div>
 
-                            {/* Controls — chỉ desktop */}
-                            <div className="hidden lg:flex flex-col gap-3 px-6 py-4 overflow-y-auto flex-1">
-                                <div className="flex items-center gap-2 text-jade text-xs bg-jade/10
-                                border border-jade/25 rounded-xl px-3 py-2">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                                        stroke="currentColor" strokeWidth="2.5">
-                                        <polyline points="20 6 9 17 4 12" />
-                                    </svg>
-                                    Đã lưu ·{' '}
-                                    <Link href="/history" className="underline hover:no-underline">Xem lịch sử</Link>
+                            {/* Controls desktop */}
+                            <div className="hidden lg:flex flex-col gap-2 px-4 py-3 flex-shrink-0">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 text-jade text-xs">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" strokeWidth="2.5">
+                                            <polyline points="20 6 9 17 4 12" />
+                                        </svg>
+                                        Đã lưu
+                                        <span className="text-amber-glow font-bold font-mono">{result.subtitle_count}</span> câu
+                                    </div>
+                                    <Link href="/history" className="text-xs text-jade underline hover:no-underline">
+                                        Lịch sử
+                                    </Link>
                                 </div>
                                 <UrlInput onAnalyze={handleAnalyze} isLoading={false} />
-                                <div className="grid grid-cols-3 gap-2">
-                                    {[
-                                        { label: 'Câu thoại', value: String(result.subtitle_count) },
-                                        { label: 'Trạng thái', value: '✓ Lưu' },
-                                        { label: 'Video ID', value: result.video_id.slice(0, 7) + '…' },
-                                    ].map(s => (
-                                        <div key={s.label} className="glass rounded-xl px-2 py-2.5 text-center">
-                                            <p className="text-sm font-bold text-amber-glow font-mono">{s.value}</p>
-                                            <p className="text-[10px] text-ghost mt-0.5">{s.label}</p>
-                                        </div>
-                                    ))}
-                                </div>
                             </div>
                         </div>
 
-                        {/* ── 3. SUBTITLE ──
-             * flex-1:         chiếm toàn bộ không gian còn lại
-             * overflow-y-auto: CHỈ vùng này cuộn dọc
-             */}
+                        {/* ── RIGHT: SUBTITLE PANEL ── */}
+                        {/* overflow-visible: clear overflow context, cho phép scroll container hoạt động đúng */}
                         <div
                             ref={subtitleRef}
-                            className="flex-1 overflow-y-auto
-                         [-webkit-overflow-scrolling:touch]
-                         overscroll-contain
-                         px-3 sm:px-4 lg:px-5
-                         pt-3 pb-6"
+                            className="flex-1 overflow-visible min-h-0"
                         >
                             <SubtitlePanel
                                 subtitles={subtitles}
                                 currentTime={currentTime}
+                                isPaused={isPaused}
                                 onSeek={t => window.dispatchEvent(
                                     new CustomEvent('seek-video', { detail: { time: t } })
                                 )}

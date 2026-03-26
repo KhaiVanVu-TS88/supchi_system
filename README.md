@@ -4,11 +4,23 @@
 
 ---
 
-## 🌟 Giới Thiệu
+## 1. Giới Thiệu
 
-**學中文** (Học Trung Văn) là nền tảng học tiếng Trung ứng dụng AI, được thiết kế để giúp người học tiếng Việt tiếp cận ngôn ngữ Trung Quốc một cách trực quan và hiệu quả nhất.
+### Mục Tiêu Dự Án
 
-Thay vì học qua sách giáo khoa thuần túy, hệ thống cho phép người dùng học từ nội dung thực tế — video YouTube, hình chụp biển hiệu, màn hình điện thoại, hay chữ viết tay — rồi tự động phân tích, tạo phiên âm Pinyin và dịch sang tiếng Việt ngay lập tức.
+**學中文** (Học Trung Văn) là nền tảng học tiếng Trung ứng dụng AI, giúp người học tiếng Việt tiếp cận tiếng Trung Quốc một cách trực quan và hiệu quả.
+
+Thay vì học qua sách giáo khoa thuần túy, hệ thống cho phép học từ nội dung thực tế — video YouTube, ảnh chụp biển hiệu, chữ viết tay — rồi tự động phân tích, tạo phiên âm Pinyin và dịch sang tiếng Việt ngay lập tức.
+
+### Phạm Vi Dự Án
+
+| Module | Mô tả |
+|--------|--------|
+| **Video Learning** | Phân tích video YouTube → tạo subtitle đồng bộ (Trung / Pinyin / Việt) |
+| **Smart Dictionary** | Tra cứu 120.000+ từ vựng với âm thanh phát âm |
+| **OCR từ ảnh** | Nhận dạng chữ Hán từ ảnh chụp (biển hiệu, tài liệu, ảnh chụp màn hình) |
+| **Nhận dạng chữ viết tay** | Vẽ chữ Hán trên canvas → hệ thống đoán và trả về top-5 kết quả |
+| **Tài khoản & Admin** | JWT authentication, phân quyền user/admin, dashboard quản trị |
 
 ### Triết Lý Thiết Kế
 
@@ -19,698 +31,674 @@ Thay vì học qua sách giáo khoa thuần túy, hệ thống cho phép ngườ
 
 ---
 
-## ✨ Tính Năng Chi Tiết
+## 2. Kiến Trúc Phần Mềm
 
-### 🎬 Module 1: Học Qua Video YouTube
-
-Đây là tính năng cốt lõi của hệ thống. Người dùng chỉ cần dán URL YouTube, hệ thống tự động:
-
-1. **Phát hiện subtitle có sẵn** — nếu video đã có phụ đề tiếng Trung (drama, podcast học thuật...), hệ thống dùng trực tiếp, bỏ qua bước AI để tiết kiệm thời gian
-2. **Nhận dạng giọng nói** — nếu không có subtitle, Faster-Whisper phân tích âm thanh và tạo transcript
-3. **Tạo Pinyin** — pypinyin chuyển mỗi câu thành phiên âm chuẩn có dấu thanh
-4. **Dịch tiếng Việt** — Google Translate dịch nghĩa tự nhiên
-5. **Hiển thị đồng bộ** — subtitle xuất hiện đúng thời điểm trong video, tự động cuộn theo
-
-**Tương tác thông minh:**
-- Click vào bất kỳ từ nào trong subtitle → popup tra từ điển ngay
-- Click vào dòng subtitle → video nhảy đến đúng thời điểm đó
-- Progress bar realtime theo dõi tiến trình xử lý (hệ thống xử lý nền, không chặn UI)
-
-**Lưu trữ lịch sử:**
-- Tất cả video đã xử lý được lưu vào tài khoản người dùng
-- Xem lại bất kỳ lúc nào mà không cần xử lý lại
-- Quản lý lịch sử: xem, tìm kiếm, xóa
-
----
-
-### 📖 Module 2: Từ Điển Thông Minh
-
-Tra cứu từ điển chính xác và đầy đủ nhất, được xây dựng trên nền tảng CC-CEDICT — bộ từ điển Trung-Anh mã nguồn mở với hơn 120,000 từ.
-
-**Đặc điểm nổi bật:**
-- **Đa nghĩa thực sự** — mỗi từ hiển thị tất cả nghĩa (ví dụ: 打 có 6+ nghĩa: đánh, gọi điện, chơi thể thao, mở đèn, gõ chữ, xây dựng...)
-- **Pinyin chuẩn** — dấu thanh đúng vị trí theo quy tắc ngữ âm
-- **Phát âm audio** — nghe giọng đọc chuẩn bằng Microsoft Edge TTS, fallback sang Google TTS
-- **Word segmentation** — nhập câu dài, hệ thống tự tách thành từng từ bằng jieba
-- **Lịch sử tìm kiếm** — 10 từ gần nhất lưu tự động
-
-**Cơ chế dịch thông minh:**
-- 500+ định nghĩa phổ biến nhất được dịch sẵn trong bảng tĩnh → trả về ngay, không cần network
-- Các từ còn lại dịch qua Google Translate theo batch (1 request thay vì N request riêng lẻ)
-- Cache 2000 từ gần nhất trong bộ nhớ → lần tra thứ 2 trở đi gần như tức thì
-
----
-
-### 🔍 Module 3: Nhận Dạng Chữ Từ Ảnh (OCR)
-
-Chụp ảnh hoặc upload ảnh có chứa chữ Hán → hệ thống nhận dạng và phân tích.
-
-**Ứng dụng thực tế:**
-- Chụp ảnh menu nhà hàng, biển hiệu, sách giáo khoa, màn hình điện thoại
-- Scan tài liệu tiếng Trung để hiểu nghĩa
-- Nhận dạng nhiều dòng chữ cùng lúc
-
-**Công nghệ:**
-- EasyOCR với model tiếng Trung giản thể (ch_sim) + tiếng Anh
-- Chạy hoàn toàn trên CPU, không cần GPU
-- Kết quả được pipe qua NLP pipeline: jieba phân từ → pypinyin → Google Translate
-
-**Đầu ra:**
-- Văn bản nhận dạng theo từng dòng
-- Pinyin toàn đoạn
-- Bản dịch tiếng Việt
-- Chi tiết từng từ — click để tra từ điển đầy đủ
-
----
-
-### ✍️ Module 4: Nhận Dạng Chữ Viết Tay
-
-Canvas vẽ trực tiếp trên trình duyệt → AI nhận dạng ký tự Hán.
-
-**Cách hoạt động:**
-1. Người dùng vẽ chữ lên canvas (màu trắng trên nền tối)
-2. Sau 1.5 giây ngừng vẽ, hệ thống tự động nhận dạng
-3. Ảnh canvas được tiền xử lý: auto-invert màu, tăng contrast, threshold nhị phân, lọc nhiễu
-4. EasyOCR phân tích ảnh đã xử lý
-5. Hiển thị top 5 ký tự gợi ý + pinyin + nghĩa
-
-**UX:**
-- Nét bút mượt mà sử dụng Bezier curve
-- Nút Xóa và Nhận dạng thủ công
-- Hỗ trợ cảm ứng (touch) trên mobile/tablet
-- Kết quả có thể click để tra từ điển đầy đủ
-
----
-
-### 👤 Module 5: Tài Khoản & Bảo Mật
-
-- Đăng ký và đăng nhập với email + mật khẩu
-- Mật khẩu được hash bằng bcrypt (không thể reverse)
-- Xác thực stateless bằng JWT (access token 60 phút + refresh token 30 ngày)
-- Mỗi người dùng chỉ thấy dữ liệu của chính mình
-
----
-
-## 🏗️ Kiến Trúc Hệ Thống
+### 2.1. Tổng Quan Kiến Trúc
 
 ```
-╔══════════════════════════════════════════════════════════════════╗
-║                        NGƯỜI DÙNG (Browser)                      ║
-║                                                                    ║
-║  ┌─────────┐ ┌──────────┐ ┌─────────┐ ┌─────────┐ ┌──────────┐  ║
-║  │  Video  │ │Từ điển   │ │  OCR    │ │Viết tay │ │ Lịch sử  │  ║
-║  │Learning │ │  Popup   │ │  Ảnh   │ │ Canvas  │ │ Video    │  ║
-║  └────┬────┘ └────┬─────┘ └────┬────┘ └────┬────┘ └────┬─────┘  ║
-╚═══════╪═══════════╪════════════╪════════════╪════════════╪════════╝
-        │           │            │            │            │
-        ▼           ▼            ▼            ▼            ▼
-╔══════════════════════════════════════════════════════════════════╗
-║                   FRONTEND — Next.js 14 (:3000)                   ║
-║                                                                    ║
-║  pages/         components/              lib/                      ║
-║  ├─ index.tsx   ├─ VideoPlayer.tsx       ├─ api.ts (JWT client)   ║
-║  ├─ dictionary/ ├─ SubtitlePanel.tsx     └─ auth-context.tsx      ║
-║  ├─ history/    ├─ SubtitleItem.tsx                               ║
-║  ├─ ocr/        ├─ JobStatusBar.tsx                               ║
-║  └─ auth/       ├─ dictionary/                                    ║
-║                 │  ├─ DictionaryCard.tsx                          ║
-║                 │  └─ WordPopup.tsx                               ║
-║                 └─ ocr/                                            ║
-║                    ├─ OcrUploader.tsx                             ║
-║                    ├─ OcrResult.tsx                               ║
-║                    ├─ HandwritingCanvas.tsx                       ║
-║                    └─ HandwritingResult.tsx                       ║
-╚══════════════════════════╤═══════════════════════════════════════╝
-                           │  HTTP/REST (JWT Bearer Token)
-                           ▼
-╔══════════════════════════════════════════════════════════════════╗
-║              BACKEND API — FastAPI (:8000)                        ║
-║                                                                    ║
-║  routers/             services/              models/              ║
-║  ├─ auth.py           ├─ dictionary_service  ├─ user.py           ║
-║  ├─ videos.py         │  └─ CC-CEDICT        ├─ video.py          ║
-║  ├─ jobs.py           ├─ translation_cache   └─ job.py            ║
-║  ├─ dictionary.py     ├─ tts_service                              ║
-║  └─ ocr.py            └─ ocr_service                              ║
-║                             └─ EasyOCR                            ║
-║                                                                    ║
-║  ┌─────────────────────────────────────────┐                      ║
-║  │  Redis (:6379)  ← chạy trong container │                      ║
-║  │  Task broker cho Celery                 │                      ║
-║  └─────────────────────────────────────────┘                      ║
-╚════════════╤═════════════════════════════════════════════════════╝
-             │  Task Queue (Celery)
-             ▼
-╔══════════════════════════════════════════════════════════════════╗
-║              CELERY WORKER (container riêng)                      ║
-║                                                                    ║
-║  pipeline/orchestrator.py                                         ║
-║  │                                                                 ║
-║  ├── Bước 1: HybridSubtitleExtractor                             ║
-║  │           ├─ Có manual subtitle? → dùng luôn (0s AI)         ║
-║  │           └─ Không có → WhisperEngine (faster-whisper)       ║
-║  │                                                                 ║
-║  ├── Bước 2: LLMPostProcessor (optional)                         ║
-║  │           └─ Có ANTHROPIC_API_KEY → Claude sửa dấu câu       ║
-║  │                                                                 ║
-║  ├── Bước 3: PinyinConverter                                     ║
-║  │           └─ pypinyin → pinyin có dấu thanh                  ║
-║  │                                                                 ║
-║  └── Bước 4: Translator                                          ║
-║              └─ Google Translate → tiếng Việt                   ║
-╚════════════╤═════════════════════════════════════════════════════╝
-             │  SQLAlchemy ORM
-             ▼
-╔══════════════════════════════════════════════════════════════════╗
-║              DATABASE — SQLite (/data/supchi4.db)                 ║
-║                                                                    ║
-║  users          videos           subtitles      processing_jobs   ║
-║  ─────          ──────           ──────────     ───────────────   ║
-║  id             id               id             id                ║
-║  username       user_id          video_id       user_id           ║
-║  email          youtube_url      start_time     status            ║
-║  password_hash  video_id         end_time       progress          ║
-║  is_active      title            chinese        subtitle_source   ║
-║  created_at     thumbnail_url    pinyin         llm_used          ║
-║                 created_at       vietnamese     celery_task_id    ║
-╚══════════════════════════════════════════════════════════════════╝
+┌──────────────────────────────────────────────────────────────────┐
+│                         USER'S BROWSER                            │
+│                                                                  │
+│  ┌─────────┐  ┌────────────┐  ┌─────────┐  ┌─────────┐        │
+│  │ Video   │  │ Subtitle   │  │ Dictionary │ │  OCR   │        │
+│  │ Player  │  │ Panel      │  │    /    │  │ Hand-  │        │
+│  │         │  │            │  │ TTS Audio│  │ writing│        │
+│  └────┬────┘  └─────┬──────┘  └─────────┘  └─────────┘        │
+│       │            │                                            │
+│       └────────────┼────────────────────────────────────────►  │
+│                    │              NEXT.JS 14 (Frontend)           │
+│                    │     ┌─────────────────────────────┐         │
+│                    └────►│     pages/index.tsx         │         │
+│                          │  onTimeUpdate → activeIndex │         │
+│                          └──────────────┬──────────────┘         │
+└─────────────────────────────────────────┼───────────────────────┘
+                                          │ HTTP / REST
+                                          ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    FASTAPI (Backend)                             │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐        │
+│  │ /auth    │ │ /videos  │ │ /dict    │ │ /ocr     │        │
+│  │          │ │ /jobs    │ │ /audio   │ │ /handwriting│      │
+│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘        │
+│       │            │             │             │                │
+│  ┌────┴────────────┴─────────────┴─────────────┴─────┐         │
+│  │              CORE SERVICES                          │         │
+│  │  • Rate Limiter (Redis sliding window)            │         │
+│  │  • JWT Auth (HS256, 60min access / 30d refresh)   │         │
+│  │  • Video Cache (Redis deduplication)              │         │
+│  └────────────────────────┬────────────────────────────┘         │
+│                           │                                      │
+│  ┌────────────────────────┴────────────────────────────┐         │
+│  │              PIPELINE (Video AI)                     │         │
+│  │  ① yt-dlp (download audio / extract captions)      │         │
+│  │  ② faster-whisper (speech → text, CPU int8)         │         │
+│  │  ③ Claude Haiku (optional, post-processing)          │         │
+│  │  ④ pypinyin (text → Pinyin with tone marks)          │         │
+│  │  ⑤ Google Translate (zh-CN → vi)                     │         │
+│  └─────────────────────────────────────────────────────┘         │
+└─────────────────────────────────────────────────────────────────┘
+           │                              │
+           │                              │
+           ▼                              ▼
+┌───────────────────────┐    ┌───────────────────────────────────┐
+│    REDIS (Cache)      │    │    CELERY (Background Workers)    │
+│                       │    │                                   │
+│  DB 0: Celery broker  │    │  ┌─────────────┐ ┌────────────┐ │
+│  DB 1: Video cache     │    │  │worker-video │ │ worker-ocr │ │
+│  DB 2: Dictionary      │    │  │ (video_queue)│ │ (ocr_queue)│ │
+│                       │    │  └─────────────┘ └────────────┘ │
+│  Rate limiting keys    │    │  ┌──────────────────────────┐   │
+│  Video dedup keys      │    │  │ celery-beat (scheduler)  │   │
+│                       │    │  └──────────────────────────┘   │
+└───────────────────────┘    └───────────────────────────────────┘
+           │
+           ▼
+┌───────────────────────┐
+│   SQLITE (dev)        │
+│   PostgreSQL (prod)   │
+│                       │
+│  users, videos,       │
+│  subtitles,           │
+│  processing_jobs       │
+└───────────────────────┘
 ```
+
+### 2.2. Thành Phần Chính
+
+#### Frontend (Next.js 14 + TypeScript)
+
+| Thành phần | File | Vai trò |
+|------------|------|---------|
+| `VideoPlayer` | `components/VideoPlayer.tsx` | Nhúng YouTube player, poll `getCurrentTime()` mỗi ~1ms, dispatch `seek-video` event |
+| `SubtitlePanel` | `components/SubtitlePanel.tsx` | Binary search O(log n) tìm active subtitle, auto-scroll, memoized rows |
+| `SubtitleItem` | `components/SubtitleItem.tsx` | Card hiển thị 1 subtitle, click word → tra từ điển |
+| `WordPopup` | `components/dictionary/WordPopup.tsx` | Popup hiển thị thông tin từ điển đầy đủ |
+| `JobStatusBar` | `components/JobStatusBar.tsx` | Poll job status mỗi 3s, animated progress dots |
+| `Navbar` | `components/layout/Navbar.tsx` | Điều hướng, hamburger menu trên mobile |
+| `OcrUploader` | `components/ocr/OcrUploader.tsx` | Upload ảnh hoặc chụp từ camera |
+| `HandwritingCanvas` | `components/ocr/HandwritingCanvas.tsx` | Canvas vẽ chữ Hán, tự động nhận dạng |
+
+#### Backend (FastAPI + Python)
+
+| Thành phần | File | Vai trò |
+|------------|------|---------|
+| `main.py` | Root | FastAPI app, lifespan startup (prewarm models) |
+| `subtitles_router` | `routers/videos.py` | Submit video, get video detail, soft delete |
+| `jobs_router` | `routers/jobs.py` | Poll job status |
+| `auth_router` | `routers/auth.py` | Register, login, refresh token |
+| `dictionary_router` | `routers/dictionary.py` | Tra từ, segment, phát âm TTS |
+| `ocr_router` | `routers/ocr.py` | OCR ảnh, nhận dạng chữ viết |
+| `admin_router` | `routers/admin.py` | Dashboard, quản lý user/video/job |
+| `monitoring_router` | `routers/monitoring.py` | Health check, queue stats |
+| `orchestrator` | `pipeline/orchestrator.py` | Điều phối 5 bước pipeline video |
+| `subtitle_extractor` | `pipeline/subtitle_extractor.py` | Hybrid: YouTube captions → Whisper fallback |
+| `whisper_engine` | `pipeline/whisper_engine.py` | faster-whisper CPU int8 |
+| `rate_limiter` | `core/rate_limiter.py` | Redis sliding window rate limiting |
+
+### 2.3. Container Architecture (Docker)
+
+```
+┌─────────────────────────────────────────────────────┐
+│                 app-network (bridge)                 │
+│                                                      │
+│  ┌─────────┐  ┌──────────┐  ┌─────────────────┐  │
+│  │  Redis  │  │ Backend   │  │   Frontend      │  │
+│  │  7-alpine│  │ FastAPI   │  │   Next.js 14   │  │
+│  │ 6379    │  │ :8000     │  │   :3000        │  │
+│  └────┬────┘  └─────┬─────┘  └─────────────────┘  │
+│       │             │                               │
+│       │    ┌────────┴────────┐                      │
+│       │    │  Celery Workers │                      │
+│       │    │ ┌────────────┐  │                      │
+│       │    │ │worker-video│  │                      │
+│       │    │ │(video_queue)│  │                      │
+│       │    │ └────────────┘  │                      │
+│       │    │ ┌────────────┐  │                      │
+│       │    │ │worker-ocr  │  │                      │
+│       │    │ │(ocr_queue) │  │                      │
+│       │    │ └────────────┘  │                      │
+│       │    │ ┌────────────┐  │                      │
+│       │    │ │celery-beat │  │                      │
+│       │    │ │(scheduler) │  │                      │
+│       │    │ └────────────┘  │                      │
+│       └────┴──────────────────┘                      │
+└─────────────────────────────────────────────────────┘
+```
+
+| Container | Image | RAM | Queue |
+|-----------|-------|-----|-------|
+| `redis` | `redis:7-alpine` | — | DB 0=broker, DB 1=cache |
+| `backend` | `python:3.11-slim` | 2GB | REST API |
+| `worker-video` | `python:3.11-slim` | 4GB | `video_queue` |
+| `worker-ocr` | `python:3.11-slim` | 2GB | `ocr_queue` |
+| `celery-beat` | `python:3.11-slim` | 256MB | Scheduler |
+| `frontend` | `node:20` | — | Next.js |
+| `flower` *(profile)* | `python:3.11-slim` | 256MB | Celery monitor (:5555) |
 
 ---
 
-## 🔄 Luồng Xử Lý Video (Chi Tiết)
+## 3. Nguyên Lý Hoạt Động Của Các Chức Năng
+
+### 3.1. Video Learning — Phân Tích Video YouTube
+
+#### Bước 1: Người dùng gửi URL
+
+Người dùng paste URL YouTube vào ô nhập → `POST /api/videos/analyze`
+
+Backend thực hiện 3 kiểm tra trước khi xử lý:
 
 ```
-Người dùng dán URL YouTube
-          │
-          ▼
-POST /api/videos/analyze
-          │
-          ├─ Tạo ProcessingJob (status: queued)
-          ├─ Push task vào Redis queue
-          └─ Trả về { job_id } ngay lập tức (202 Accepted)
-
-Frontend poll GET /api/jobs/{id} mỗi 3 giây
-          │
-          ▼
-Celery Worker nhận task
-          │
-          ├─ [10%] Kiểm tra YouTube captions
-          │         ├─ Có manual subtitle? → [40%] dùng luôn
-          │         └─ Không có → [15%] Tải audio (yt-dlp)
-          │                       [30%] Faster-Whisper nhận dạng
-          │
-          ├─ [55%] LLM sửa dấu câu (nếu có ANTHROPIC_API_KEY)
-          ├─ [65%] Tạo Pinyin (pypinyin)
-          ├─ [80%] Dịch tiếng Việt (Google Translate)
-          └─ [100%] Lưu DB, cập nhật job status: done
-
-Frontend nhận status "done"
-          │
-          └─ Fetch GET /api/videos/{id}
-             Hiển thị VideoPlayer + SubtitlePanel đồng bộ
+1. Rate limit    → Redis sliding window: 5 request/phút/user
+2. Duplicate     → Redis: đã xử lý chưa? → trả cached kết quả ngay
+3. Pending jobs  → Đang có ≥3 job đang chờ? → từ chối
 ```
 
----
-
-## 📦 Cấu Trúc Project
+#### Bước 2: Hybrid Subtitle Extractor (Progress 10%)
 
 ```
-supchi4v3_dict/
-│
-├── docker-compose.yml          ← Khởi động toàn bộ (3 containers)
-├── .env.example                ← Template biến môi trường
-├── .gitignore
-├── README.md
-│
-├── backend/
-│   ├── Dockerfile              ← Python 3.11 + ffmpeg + redis-server
-│   ├── start.sh                ← Khởi động Redis nội bộ + uvicorn
-│   ├── requirements.txt        ← ~15 Python packages
-│   ├── main.py                 ← FastAPI app, đăng ký routers, pre-warm models
-│   │
-│   ├── core/                   ── Infrastructure
-│   │   ├── config.py           ← Settings từ environment variables
-│   │   ├── database.py         ← SQLAlchemy engine (SQLite/PostgreSQL)
-│   │   ├── security.py         ← bcrypt hash + JWT create/decode
-│   │   └── deps.py             ← get_current_user dependency
-│   │
-│   ├── models/                 ── Database ORM Models
-│   │   ├── user.py             ← Bảng users
-│   │   ├── video.py            ← Bảng videos + subtitles
-│   │   └── job.py              ← Bảng processing_jobs
-│   │
-│   ├── routers/                ── API Endpoints
-│   │   ├── auth.py             ← /api/auth/* (register, login, me)
-│   │   ├── videos.py           ← /api/videos/* (analyze, list, get, delete)
-│   │   ├── jobs.py             ← /api/jobs/{id} (polling status)
-│   │   ├── dictionary.py       ← /api/dictionary/* + /api/audio/*
-│   │   └── ocr.py              ← /api/ocr + /api/handwriting
-│   │
-│   ├── services/               ── Business Logic
-│   │   ├── dictionary_service.py ← CC-CEDICT parser, lookup, LRU cache
-│   │   ├── translation_cache.py  ← 500+ định nghĩa dịch sẵn (0ms)
-│   │   ├── tts_service.py        ← edge-tts + gTTS fallback
-│   │   ├── ocr_service.py        ← EasyOCR wrapper + NLP pipeline
-│   │   └── handwriting_service.py← Canvas → preprocess → OCR
-│   │
-│   ├── worker/                 ── Background Processing
-│   │   ├── celery_app.py       ← Celery config (Redis broker)
-│   │   └── tasks.py            ← process_video_task
-│   │
-│   └── pipeline/               ── AI Pipeline Modules
-│       ├── orchestrator.py     ← Điều phối 4 bước với progress callback
-│       ├── subtitle_extractor.py ← Hybrid: YouTube captions hoặc Whisper
-│       ├── whisper_engine.py   ← faster-whisper (model small, CPU int8)
-│       ├── llm_processor.py    ← Claude AI sửa dấu câu (optional)
-│       ├── adapters.py         ← Adapter functions (add_pinyin, translate)
-│       ├── pinyin_converter.py ← pypinyin wrapper
-│       ├── translator.py       ← Google Translate wrapper
-│       └── youtube.py          ← yt-dlp + proxy support
-│
-└── frontend/
-    ├── Dockerfile              ← Node 20 multi-stage build
-    ├── package.json
-    ├── next.config.js          ← standalone output, rewrites /api/*
-    ├── tailwind.config.js      ← Custom colors (ink, amber, jade)
-    ├── tsconfig.json
+yt-dlp extract_info(URL)
     │
-    ├── pages/                  ── Next.js Pages Router
-    │   ├── index.tsx           ← Trang học video (main page)
-    │   ├── dictionary/
-    │   │   └── index.tsx       ← Trang tra từ điển
-    │   ├── history/
-    │   │   ├── index.tsx       ← Danh sách video đã xử lý
-    │   │   └── [id].tsx        ← Xem lại video cụ thể
-    │   └── auth/
-    │       ├── login.tsx       ← Trang đăng nhập
-    │       └── register.tsx    ← Trang đăng ký
+    ├──▶ Có subtitle thủ công (zh-Hans / zh / zh-CN)?
+    │         │
+    │         └──▶ Parse JSON3/VTT → subtitles[]
+    │              (source = "manual", nhanh ~10-30s)
     │
-    ├── components/             ── React Components
-    │   ├── VideoPlayer.tsx     ← YouTube embedded player (react-youtube)
-    │   ├── SubtitlePanel.tsx   ← Danh sách subtitle, auto-scroll
-    │   ├── SubtitleItem.tsx    ← Một dòng subtitle, clickable words
-    │   ├── UrlInput.tsx        ← Input URL + validation
-    │   ├── JobStatusBar.tsx    ← Progress bar realtime (poll 3s)
-    │   ├── layout/
-    │   │   └── Navbar.tsx      ← Header: tabs + user badge + logout
-    │   ├── auth/
-    │   │   └── AuthForm.tsx    ← Form đăng nhập/đăng ký dùng chung
-    │   ├── dictionary/
-    │   │   ├── DictionaryCard.tsx ← Card kết quả: đa nghĩa + audio
-    │   │   └── WordPopup.tsx      ← Popup khi click từ trong subtitle
-    │   ├── history/
-    │   │   └── VideoCard.tsx   ← Card lịch sử với thumbnail
-    │   └── ocr/
-    │       ├── OcrUploader.tsx ← Upload ảnh hoặc chụp camera
-    │       ├── OcrResult.tsx   ← Hiển thị kết quả OCR + clickable words
-    │       ├── HandwritingCanvas.tsx ← Canvas vẽ chữ (Bezier, touch)
-    │       └── HandwritingResult.tsx ← Kết quả + gợi ý candidates
-    │
-    ├── lib/
-    │   ├── api.ts              ← HTTP client tự đính JWT header
-    │   └── auth-context.tsx    ← React Context: user, login, logout
-    │
-    └── types/
-        └── subtitle.ts         ← TypeScript interfaces
+    └──▶ Không có subtitle thủ công?
+              │
+              └──▶ yt-dlp download audio (WAV via FFmpeg)
+                   (qua proxy nếu cần, cho thị trường Trung Quốc)
 ```
 
----
+#### Bước 3: Faster-Whisper — Speech to Text (Progress 30%)
 
-## 🛠️ Tech Stack
+```
+WhisperModel("small", device="cpu", compute_type="int8")
+    │
+    └──▶ [{start: 0.0, end: 3.5, text: "你好世界"}, ...]
+```
 
-### Backend
-| Thư viện | Phiên bản | Vai trò |
-|----------|-----------|---------|
-| FastAPI | 0.111.0 | REST API framework, async, tự động Swagger |
-| Uvicorn | 0.30.1 | ASGI server |
-| SQLAlchemy | 2.0.30 | ORM, hỗ trợ SQLite và PostgreSQL |
-| Celery | 5.3.6 | Background job queue |
-| Redis | 5.0.4 | Message broker cho Celery |
-| faster-whisper | 1.0.3 | Speech-to-text, nhanh 4–5x so với Whisper gốc |
-| yt-dlp | 2024.5.27 | Tải audio/subtitle từ YouTube |
-| pypinyin | 0.51.0 | Chuyển chữ Hán → Pinyin có dấu thanh |
-| jieba | 0.42.1 | Word segmentation tiếng Trung |
-| deep-translator | 1.11.4 | Google Translate (miễn phí) |
-| edge-tts | ≥6.1.18 | Microsoft Edge TTS (giọng đọc chuẩn) |
-| gTTS | 2.5.1 | Google TTS (fallback) |
-| EasyOCR | 1.7.1 | OCR nhận dạng chữ Hán từ ảnh |
-| Pillow | ≥10.0 | Xử lý ảnh (tiền xử lý handwriting) |
-| python-jose | 3.3.0 | JWT encode/decode |
-| bcrypt | 4.0.1 | Password hashing |
-| anthropic | ≥0.25.0 | Claude AI API (optional) |
-| ffmpeg | system | Xử lý audio/video |
+Model "small" đủ chính xác cho tiếng Trung, chạy trên CPU int8 (không cần GPU).
 
-### Frontend
-| Thư viện | Phiên bản | Vai trò |
-|----------|-----------|---------|
-| Next.js | 14.2.3 | React framework, Pages Router |
-| TypeScript | 5.4.5 | Type safety |
-| TailwindCSS | 3.4.3 | Utility-first CSS |
-| react-youtube | 10.1.0 | YouTube player component |
-| clsx | 2.1.1 | Conditional className |
+#### Bước 4: LLM Post-Processing — Tùy chọn (Progress 55%)
 
-### Infrastructure
-| Thành phần | Công nghệ |
-|------------|-----------|
-| Containerization | Docker + Docker Compose |
-| Database (dev) | SQLite |
-| Database (prod) | PostgreSQL (thay DATABASE_URL) |
-| Từ điển | CC-CEDICT (120,000+ entries, open source) |
-| AI Model (STT) | Whisper small (244M params, int8 quantized) |
-| AI Model (OCR) | EasyOCR ch_sim (Chinese Simplified) |
+```
+IF ANTHROPIC_API_KEY có giá trị:
+    Claude Haiku batch-8 subtitles
+        → Thêm dấu câu
+        → Sửa lỗi đọc nhầm
+ELSE:
+    → Skip, giữ nguyên kết quả Whisper
+```
 
----
+#### Bước 5: Pinyin Converter (Progress 65%)
 
-## 🗄️ Database Schema
+```
+pypinyin(subtitle.text, style=Style.TONE)
+    │
+    └──▶ "nǐ hǎo shì jiè"  (số thanh: ni3 hao3 shi4 jie4)
+```
+
+#### Bước 6: Google Translate (Progress 80%)
+
+```
+Google Translate zh-CN → vi, mỗi subtitle cách nhau 0.3s
+    │
+    └──▶ "Bạn tốt thế giới"  (fake, chỉ minh họa)
+```
+
+#### Bước 7: Lưu vào Database
 
 ```sql
--- Tài khoản
-CREATE TABLE users (
-    id            INTEGER PRIMARY KEY,
-    username      VARCHAR(50)  UNIQUE NOT NULL,
-    email         VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,      -- bcrypt hash
-    is_active     BOOLEAN      DEFAULT TRUE,
-    created_at    TIMESTAMP    DEFAULT NOW()
-);
-
--- Video đã xử lý
-CREATE TABLE videos (
-    id            INTEGER PRIMARY KEY,
-    user_id       INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    youtube_url   VARCHAR(500) NOT NULL,
-    video_id      VARCHAR(20)  NOT NULL,      -- YouTube video ID (11 chars)
-    title         VARCHAR(500),
-    thumbnail_url VARCHAR(500),
-    created_at    TIMESTAMP DEFAULT NOW()
-);
-
--- Subtitle của video
-CREATE TABLE subtitles (
-    id          INTEGER PRIMARY KEY,
-    video_id    INTEGER REFERENCES videos(id) ON DELETE CASCADE,
-    start_time  FLOAT NOT NULL,
-    end_time    FLOAT NOT NULL,
-    chinese     TEXT NOT NULL,
-    pinyin      TEXT NOT NULL,
-    vietnamese  TEXT NOT NULL
-);
-
--- Trạng thái xử lý background
-CREATE TABLE processing_jobs (
-    id               INTEGER PRIMARY KEY,
-    user_id          INTEGER REFERENCES users(id),
-    video_id         INTEGER REFERENCES videos(id),
-    status           VARCHAR(20) DEFAULT 'queued',  -- queued|processing|done|failed
-    progress         FLOAT DEFAULT 0,               -- 0–100
-    youtube_url      VARCHAR(500) NOT NULL,
-    subtitle_source  VARCHAR(50),   -- 'manual' | 'whisper'
-    llm_used         VARCHAR(10),   -- 'yes' | 'no'
-    error_message    TEXT,
-    celery_task_id   VARCHAR(200),
-    created_at       TIMESTAMP DEFAULT NOW(),
-    finished_at      TIMESTAMP
-);
+INSERT INTO videos (...)
+INSERT INTO subtitles ... (bulk)
+UPDATE processing_jobs SET status='done', video_id=...
 ```
 
----
+### 3.2. Subtitle Panel — Đồng Bộ Phụ Đề Với Video
 
-## 🔌 API Reference
+#### Tìm Active Subtitle — Binary Search O(log n)
 
-### Authentication
-```
-POST /api/auth/register   { username, email, password }
-                          → { access_token, refresh_token }
+Thay vì duyệt O(n) toàn bộ list, dùng binary search:
 
-POST /api/auth/login      { email, password }
-                          → { access_token, refresh_token }
-
-POST /api/auth/refresh    { refresh_token }
-                          → { access_token, refresh_token }
-
-GET  /api/auth/me         [Bearer Token]
-                          → { id, username, email, created_at }
-```
-
-### Videos & Jobs
-```
-POST /api/videos/analyze  [Bearer] { url, title? }
-                          → { job_id, status: "queued" }    (202 Accepted)
-
-GET  /api/jobs/{id}       [Bearer]
-                          → { id, status, progress, subtitle_source, ... }
-
-GET  /api/videos          [Bearer] ?skip=0&limit=20
-                          → [{ id, video_id, title, subtitle_count, ... }]
-
-GET  /api/videos/{id}     [Bearer]
-                          → { ...video, subtitles: [...] }
-
-DELETE /api/videos/{id}   [Bearer] → 204 No Content
-```
-
-### Dictionary
-```
-GET /api/dictionary?word=学习
-→ {
-    "word": "学习",
-    "pinyin": "xuéxí",
-    "meanings_vi": ["học", "học tập", "nghiên cứu"],
-    "pos": "động từ",
-    "grammar": "Từ loại: động từ. Có 2 nghĩa trong CC-CEDICT.",
-    "example": { "zh": "...", "vi": "..." },
-    "definitions_en": ["to learn", "to study"],
-    "audio_url": "/api/audio/abc123.mp3"
-  }
-
-GET /api/dictionary/segment?text=我喜欢学习中文
-→ { "text": "...", "words": ["我", "喜欢", "学习", "中文"] }
-
-GET /api/audio/{filename}.mp3   → MP3 audio stream
-```
-
-### OCR
-```
-POST /api/ocr             multipart/form-data { file: image }
-                          → {
-                              "raw_text": "你好世界",
-                              "lines": ["你好", "世界"],
-                              "pinyin": "nǐ hǎo shì jiè",
-                              "vietnamese": "Xin chào thế giới",
-                              "words": [{ "word", "pinyin", "meaning" }],
-                              "confidence": 0.95
-                            }
-
-POST /api/handwriting     { "image_data": "data:image/png;base64,..." }
-                          → {
-                              "candidates": ["你", "好"],
-                              "best": "你好",
-                              "pinyin": ["nǐ", "hǎo"],
-                              "meanings": ["bạn", "tốt"],
-                              "vietnamese": "xin chào",
-                              "confidence": 0.87
-                            }
-```
-
----
-
-## 🚀 Hướng Dẫn Cài Đặt & Triển Khai
-
-### Yêu Cầu Hệ Thống
-
-| Thành phần | Tối thiểu | Khuyến nghị |
-|------------|-----------|-------------|
-| RAM | 5GB | 8GB |
-| Disk | 5GB | 10GB |
-| Docker | 24.x+ | Mới nhất |
-| Internet | Bắt buộc | — |
-
----
-
-### Bước 1 — Lấy Source Code
-
-```bash
-git clone <repo-url> supchi4v3_dict
-cd supchi4v3_dict
-cp .env.example .env
-```
-
----
-
-### Bước 2 — Cấu Hình (`.env`)
-
-```bash
-# Bắt buộc đổi khi deploy production
-SECRET_KEY=your-very-long-random-secret-key-here
-
-# Database mặc định SQLite (đổi nếu dùng PostgreSQL)
-DATABASE_URL=sqlite:////data/supchi4.db
-
-# Bật LLM sửa dấu câu (optional — bỏ trống để disable)
-ANTHROPIC_API_KEY=sk-ant-...
-```
-
----
-
-### Bước 3 — Cài Đặt Docker Mirror (Trung Quốc)
-
-Nếu Docker Hub bị chặn, cấu hình mirror trước:
-
-```bash
-# Tìm file daemon.json của Docker và thêm:
-{
-  "registry-mirrors": [
-    "https://dockerproxy.com",
-    "https://docker.m.daocloud.io"
-  ]
+```javascript
+function findActiveIndex(subtitles, currentTime) {
+  // Tìm subtitle mà: start <= currentTime < end
+  // 2000 subtitles → chỉ cần 11 bước thay vì 1000 bước
 }
-# Restart Docker
+```
+
+#### Auto-Scroll — Smart Scroll
+
+Khi active subtitle thay đổi:
+
+```
+┌──────────────────────────────────────────────────┐
+│  SubtitlePanel                                    │
+│                                                  │
+│  ┌─ Header (flex-shrink-0) ──────────────────┐  │
+│  │  Câu thoại · 1 / 200  [200 câu] [03:45]   │  │
+│  └────────────────────────────────────────────┘  │
+│                                                  │
+│  ┌─ Scroll Container (flex-1, overflow-y-auto) ┐  │
+│  │                                             │  │
+│  │   [subtitle 1]                             │  │
+│  │   [subtitle 2]                             │  │
+│  │   [subtitle 3 - ACTIVE ⭐] ◄── CENTER     │  │
+│  │   [subtitle 4]                             │  │
+│  │   [subtitle 5]                             │  │
+│  │   ...                                      │  │
+│  │                                             │  │
+│  └─────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────┘
+```
+
+**4 điều kiện trước khi scroll:**
+
+1. `activeIndex < 0` → không làm gì
+2. `activeIndex === prevIndex` → index không đổi, skip
+3. `isPaused === true` → video đang pause, skip
+4. `isCardCentered()` → card đã ở giữa rồi, skip
+
+**Công thức căn giữa:**
+
+```
+scrollTop = cardTop - (containerHeight / 2) + (cardHeight / 2)
+```
+
+→ Card active luôn nằm **chính giữa** viewport.
+
+### 3.3. Smart Dictionary — Tra Từ Điển
+
+#### Nguồn dữ liệu
+
+```
+1. CC-CEDICT (~120.000 entries)
+   └── Tải từ internet, parse, lưu vào memory
+   └── Lazy load: chỉ load khi cần
+
+2. Static translation cache
+   └── 500+ pattern đã biết, O(1) lookup, 0ms
+
+3. Google Translate (fallback)
+   └── Nếu không có trong CC-CEDICT
+```
+
+#### Luồng tra từ
+
+```
+User click vào chữ Hán trong subtitle
+    │
+    ├── /api/dictionary/segment?text=你好
+    │         └── jieba segmentation: ["你", "好"]
+    │
+    └── /api/dictionary?word=你
+              │
+              ├── Cache hit? → trả ngay (0ms)
+              ├── CC-CEDICT lookup
+              ├── Google Translate fallback
+              └── Trả về: {pinyin, meanings_vi[], audio_url}
+```
+
+#### Text-to-Speech (TTS)
+
+```
+edge-tts (zh-CN-XiaoxiaoNeural) → gTTS fallback
+    │
+    └──▶ Cache MD5 → /tmp/audio_cache/{md5}.mp3
+         └── /api/audio/{md5}.mp3
+```
+
+### 3.4. OCR từ Ảnh — Nhận Dạng Chữ Hán
+
+```
+User upload ảnh (upload / camera capture)
+    │
+    ▼
+POST /api/ocr (multipart/form-data)
+    │
+    ├── MD5 check → cache hit? → trả ngay
+    │
+    └── EasyOCR (ch_sim + en, CPU)
+              │
+              └──▶ OCRResult:
+                    {
+                      raw_text: "...",
+                      lines: [...],
+                      pinyin: [...],
+                      vietnamese: [...],
+                      words: [
+                        {
+                          char: "中",
+                          pinyin: "zhōng",
+                          meaning_vi: "trung, trung đẳng, trung học",
+                          audio_url: "/api/audio/{md5}.mp3"
+                        }
+                      ]
+                    }
+```
+
+### 3.5. Nhận Dạng Chữ Viết Tay
+
+```
+User vẽ chữ Hán trên HTML5 Canvas
+    │
+    ├── Auto-preprocessing ảnh:
+    │     grayscale → auto-invert → contrast×3 → binary threshold → denoise
+    │
+    └── POST /api/handwriting
+              │
+              └──▶ Top-5 candidates:
+                    [
+                      { char: "中", confidence: 0.92, pinyin: "zhōng", meanings: [...] },
+                      { char: "申", confidence: 0.71, pinyin: "shēn",  meanings: [...] },
+                      ...
+                    ]
 ```
 
 ---
 
-### Bước 4 — Cấu Hình Proxy YouTube (Trung Quốc)
+## 4. Luồng Hoạt Động (Flow)
 
-YouTube bị GFW chặn. Cần proxy để tải video.
+### 4.1. Luồng Video Learning — End-to-End
 
-```bash
-# Tìm IP gateway và port proxy đang chạy trên host
-ip route | grep default      # → 172.25.80.1
-netstat -an | grep LISTEN    # → tìm port VPN (7897, 7890, 1080...)
-
-# Test
-curl --proxy http://172.25.80.1:7897 https://youtube.com --max-time 5
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         FRONTEND                                  │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  pages/index.tsx                                         │   │
+│  │                                                           │   │
+│  │  State: currentTime, isPaused, result (video + subs)    │   │
+│  │                                                           │   │
+│  │  ┌────────────────────────────────────────────────────┐ │   │
+│  │  │  VideoPlayer (react-youtube)                       │ │   │
+│  │  │  • Polling getCurrentTime() mỗi ~1ms               │ │   │
+│  │  │  • Lắng nghe 'seek-video' CustomEvent             │ │   │
+│  │  │  • onTimeUpdate(time) → setCurrentTime(time)       │ │   │
+│  │  │  • onPausedChange(isPaused) → VideoPlayer→Parent   │ │   │
+│  │  └─────────────────────────┬────────────────────────────┘ │   │
+│  │                            │                                │   │
+│  │  ┌─────────────────────────┴────────────────────────────┐ │   │
+│  │  │  SubtitlePanel                                        │ │   │
+│  │  │  • activeIndex = binarySearch(subtitles, currentTime)│ │   │
+│  │  │  • SubtitleRow isActive={idx === activeIndex}        │ │   │
+│  │  │  • useEffect(activeIndex) ──► scrollTo CENTER       │ │   │
+│  │  │  • Click card ──► dispatch 'seek-video' event       │ │   │
+│  │  │  • Click word ──► /api/dictionary?word=...          │ │   │
+│  │  └───────────────────────────────────────────────────────┘ │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+└──────────────────────────────────────────────────────────────────┘
+           │ POST /api/videos/analyze
+           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                         BACKEND                                   │
+│                                                                  │
+│  1. Rate limit check (Redis sliding window)                    │
+│  2. Duplicate check (Redis: done:{uid}:{vid} key)               │
+│  3. Pending jobs check (≤3/user)                                │
+│  4. Create ProcessingJob (status=queued)                         │
+│  5. Redis: SET video:processing:{vid} = job_id                 │
+│  6. Publish task to video_queue                                 │
+│  7. Return 202 {job_id, ...}                                   │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  WORKER (Celery, worker-video)                           │   │
+│  │                                                           │   │
+│  │  Step 1: HybridSubtitleExtractor (10%)                  │   │
+│  │    → YouTube captions (nhanh) HOẶC yt-dlp + Whisper      │   │
+│  │                                                           │   │
+│  │  Step 2: faster-whisper (30%)                           │   │
+│  │    → speech → text (CPU int8, ~2-10 phút tùy độ dài)   │   │
+│  │                                                           │   │
+│  │  Step 3: Claude Haiku (55%, tùy chọn)                   │   │
+│  │    → punctuation, fix homophones                        │   │
+│  │                                                           │   │
+│  │  Step 4: pypinyin (65%)                                 │   │
+│  │    → text → pinyin với thanh                             │   │
+│  │                                                           │   │
+│  │  Step 5: Google Translate (80%)                          │   │
+│  │    → zh-CN → vi                                           │   │
+│  │                                                           │   │
+│  │  Step 6: Save to DB (100%)                               │   │
+│  │    → Update job status=done                              │   │
+│  └───────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  Frontend polls GET /api/jobs/{id} mỗi 3 giây                   │
+│    → status=done? → GET /api/videos/{id} → hiển thị           │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-Cập nhật `docker-compose.yml`:
-```yaml
-- HTTP_PROXY=http://172.25.80.1:PORT    # ← thay PORT
-- HTTPS_PROXY=http://172.25.80.1:PORT
+### 4.2. Luồng Seek (Phát ngược)
+
+```
+User click vào subtitle thứ N
+         │
+         ▼
+SubtitleItem.onClick()
+         │
+         ▼
+onSeek(subtitle.start)
+         │
+         ▼
+window.dispatchEvent(
+  new CustomEvent('seek-video', { detail: { time: sub.start } })
+)
+         │
+         ▼
+VideoPlayer lắng nghe 'seek-video'
+         │
+         ▼
+player.seekTo(time, true)   ← true = allow seek ahead
+player.playVideo()            ← tự động phát
 ```
 
-**Lưu ý:** Bật **"Allow LAN"** trong VPN client (Clash/V2Ray/...).
+### 4.3. Luồng OCR / Handwriting
+
+```
+┌─────────────┐     POST /ocr      ┌──────────────┐
+│ OcrUploader │ ────────────────► │ FastAPI      │
+│ (upload/    │                     │ /api/ocr      │
+│  camera)   │ ◄────────────────  │              │
+└─────────────┘     OCRResult      │ OCR Service  │
+                                   │ (EasyOCR)    │
+                                   └──────┬───────┘
+                                          │
+                                          ▼
+                                   ┌──────────────┐
+                                   │ Redis Cache  │
+                                   │ (MD5 keyed)  │
+                                   └──────────────┘
+```
 
 ---
 
-### Bước 5 — Build & Chạy
+## 5. Hướng Dẫn Sử Dụng
+
+### 5.1. Cài Đặt Môi Trường Phát Triển
+
+#### Yêu cầu
+
+- **Docker** & **Docker Compose** (v2+)
+- **Node.js 20+** (nếu chạy frontend riêng)
+- **Python 3.11+** (nếu chạy backend riêng)
+
+#### Cách 1: Docker (Khuyến nghị)
 
 ```bash
-docker compose up --build -d
+# Clone repository
+git clone <repo-url>
+cd chinese-learning-app
+
+# Copy và chỉnh sửa environment
+cp .env.example .env
+# Mở .env và điền các giá trị cần thiết
+
+# Build và chạy tất cả containers
+docker compose up --build
+
+# Hoặc chạy với monitoring (Flower)
+docker compose --profile monitoring up --build
 ```
 
-**Lần đầu tiên** (~20–30 phút):
-- Tải Python/Node base images
-- Cài ~1GB Python packages (qua Tsinghua PyPI mirror)
-- Tải Whisper model ~500MB (qua hf-mirror.com)
-- Tải EasyOCR models ~500MB (lần đầu dùng tính năng OCR)
-- Build Next.js production bundle
+Sau khi khởi động thành công:
 
-**Từ lần 2 trở đi**: ~1–2 phút (Docker layer cache)
-
----
-
-### Bước 6 — Kiểm Tra
-
-```bash
-docker compose ps
-# Chờ tất cả "Up" và backend "healthy"
-
-curl http://localhost:8000/health
-# → {"status":"ok","version":"3.2.0"}
-```
-
-| Dịch vụ | URL |
+| Service | URL |
 |---------|-----|
-| 🌐 Web App | http://localhost:3000 |
-| 📖 Từ điển | http://localhost:3000/dictionary |
-| 🔍 OCR | http://localhost:3000/ocr |
-| 📋 Swagger | http://localhost:8000/docs |
+| Frontend | http://localhost:3000 |
+| Backend API | http://localhost:8000 |
+| API Docs | http://localhost:8000/docs |
+| Flower (monitoring) | http://localhost:5555 |
 
----
-
-## ⚙️ Vận Hành
-
-### Lệnh Thường Dùng
+#### Cách 2: Chạy Local (Backend + Frontend riêng)
 
 ```bash
-# Xem trạng thái containers
-docker compose ps
+# Terminal 1: Backend
+cd backend
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
 
-# Xem log realtime của tất cả
-docker compose logs -f
+# Terminal 2: Worker
+celery -A worker.celery_app worker --loglevel=info -Q video_queue,ocr_queue,celery
 
-# Xem log worker (nơi AI pipeline chạy)
-docker compose logs -f worker
+# Terminal 3: Celery Beat (scheduler)
+celery -A worker.celery_app beat --loglevel=info
 
-# Restart một service sau khi sửa file Python
-docker compose restart backend
-
-# Dừng + giữ data
-docker compose down
-
-# Dừng + xoá toàn bộ data (reset hoàn toàn)
-docker compose down -v
+# Terminal 4: Frontend
+cd frontend
+npm install
+npm run dev
 ```
 
-### Backup & Restore
+### 5.2. Cấu Hình Environment
 
 ```bash
-# Backup SQLite database
-docker cp supchi4-backend:/data/supchi4.db ./backup_$(date +%Y%m%d).db
+# .env
 
-# Restore
-docker cp ./backup.db supchi4-backend:/data/supchi4.db
-docker compose restart backend
+# === REQUIRED ===
+SECRET_KEY=your-super-secret-key-change-this-in-production
+DATABASE_URL=sqlite:////data/supchi.db
+
+# Redis (Docker: tên service)
+REDIS_URL=redis://redis:6379/0
+
+# === OPTIONAL ===
+# Bật LLM post-processing (Claude Haiku)
+ANTHROPIC_API_KEY=sk-ant-...
+
+# Proxy cho thị trường Trung Quốc (nếu cần)
+HTTP_PROXY=http://172.25.80.1:7897
+HTTPS_PROXY=http://172.25.80.1:7897
+
+# HuggingFace mirror (thị trường Trung Quốc)
+HF_ENDPOINT=https://hf-mirror.com
+
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+REFRESH_TOKEN_EXPIRE_DAYS=30
 ```
 
-### Scale Worker
+### 5.3. Cách Sử Dụng
+
+#### Đăng ký / Đăng nhập
+
+1. Mở http://localhost:3000
+2. Đăng ký tài khoản mới (miễn phí)
+3. Đăng nhập → được chuyển đến trang chính
+
+#### Học từ Video YouTube
+
+1. Paste URL video YouTube (VD: `https://www.youtube.com/watch?v=...`)
+2. Nhấn **Phân tích** → hệ thống tạo job xử lý
+3. Đợi 10-30 giây (có subtitle thủ công) hoặc 2-10 phút (Whisper)
+4. Khi hoàn thành → video hiển thị cùng subtitle đồng bộ
+5. **Click vào subtitle** → video nhảy đến thời điểm đó
+6. **Click vào chữ Hán** → popup tra từ điển với âm thanh phát âm
+
+#### Tra Từ Điển
+
+1. Vào **Từ điển** từ navbar
+2. Nhập từ cần tra (VD: `你好`)
+3. Xem pinyin, nghĩa tiếng Việt, âm thanh phát âm
+4. Click **Phát âm** để nghe cách đọc
+
+#### OCR từ Ảnh
+
+1. Vào **OCR** từ navbar
+2. Upload ảnh chứa chữ Hán HOẶC chụp từ camera
+3. Hệ thống nhận dạng → hiển thị kết quả với pinyin + nghĩa
+
+#### Nhận Dạng Chữ Viết Tay
+
+1. Vào **OCR** → tab **Viết tay**
+2. Vẽ chữ Hán trên canvas (hỗ trợ cả chuột và touch)
+3. Hệ thống tự động nhận dạng sau 1.5s không vẽ
+4. Xem top-5 kết quả với độ chính xác
+
+---
+
+## 6. Các Lưu Ý Quan Trọng
+
+### Giới hạn hệ thống
+
+| Hạn chế | Chi tiết |
+|---------|----------|
+| **Số job chờ** | Tối đa **3 job đang xử lý** trên mỗi tài khoản cùng lúc |
+| **Rate limit video** | **5 request/phút** cho `/api/videos/analyze` |
+| **Rate limit OCR** | **10 request/phút** cho `/api/ocr` |
+| **Cache video** | Kết quả video được cache **24 giờ** trong Redis (cùng user) |
+| **Cache OCR** | Kết quả OCR theo **MD5 ảnh**, không có expiry |
+| **Thời gian xử lý Whisper** | ~2-10 phút tùy độ dài video (không cần GPU) |
+
+### Yêu cầu kỹ thuật
+
+| Thành phần | Yêu cầu |
+|------------|----------|
+| **RAM (worker-video)** | ≥4GB (Whisper chạy trên CPU) |
+| **RAM (worker-ocr)** | ≥2GB (EasyOCR) |
+| **Dung lượng ổ đĩa** | ~2GB cho Whisper model + EasyOCR cache |
+| **Database** | SQLite (dev), PostgreSQL (prod khuyến nghị) |
+
+### Các vấn đề thường gặp
+
+**Video không xử lý được?**
+- Kiểm tra video có public không (YouTube unlisted/private có thể lỗi)
+- Kiểm tra video có subtitle hoặc audio không
+- Kiểm tra `worker-video` container có đang chạy không
+
+**Subtitle không đồng bộ?**
+- Video có thể có nhiều audio track → chọn track tiếng Trung
+- Whisper có thể bị drift ở video rất dài (>30 phút)
+
+**Redis lỗi?**
+- Hệ thống vẫn hoạt động nhưng không có rate limit hay cache
+- Kiểm tra container `redis` đang chạy: `docker compose ps redis`
+
+**Worker không nhận job?**
+- Kiểm tra queue: `docker compose --profile monitoring up`
+- Truy cập Flower http://localhost:5555 để xem trạng thái workers
+
+### Chính sách dữ liệu
+
+- **Soft delete**: Video và subtitle bị xóa sẽ được đánh dấu `is_deleted=true`, không xóa vĩnh viễn khỏi DB ngay
+- **JWT tokens**: Access token hết hạn sau 60 phút, refresh token sau 30 ngày
+- **Không lưu** mật khẩu dạng plain text — chỉ lưu bcrypt hash
+
+### Môi trường Production
+
+Khi triển khai production:
 
 ```bash
-# Chạy 2 worker song song (xử lý nhiều video cùng lúc)
-docker compose up --scale worker=2 -d
+# Đổi DATABASE_URL sang PostgreSQL
+DATABASE_URL=postgresql://user:password@host:5432/supchi
+
+# Bật LLM post-processing
+ANTHROPIC_API_KEY=sk-ant-...
+
+# Tăng SECRET_KEY (dùng random string dài)
+SECRET_KEY=$(openssl rand -hex 32)
 ```
 
 ---
 
-## 🌍 Tối Ưu Cho Môi Trường Trung Quốc (GFW)
-
-| Dịch vụ | Trạng thái | Giải pháp tích hợp |
-|---------|------------|-------------------|
-| Docker Hub | ❌ Bị chặn | Mirror qua `daemon.json` |
-| PyPI | ⚠️ Chậm | `pypi.tuna.tsinghua.edu.cn` trong Dockerfile |
-| npm | ⚠️ Chậm | `registry.npmmirror.com` trong Dockerfile |
-| HuggingFace | ❌ Bị chặn | `HF_ENDPOINT=https://hf-mirror.com` |
-| YouTube | ❌ Bị chặn | Proxy qua `HTTP_PROXY` + yt-dlp proxy |
-| PostgreSQL/Redis images | ❌ Khó pull | Thay bằng SQLite + Redis trong container |
-| Google Translate | ✅ Hoạt động | Dùng trực tiếp (không bị chặn) |
-| CC-CEDICT | ✅ Hoạt động | Tải từ mdbg.net trực tiếp |
-
----
-
-## ❓ Xử Lý Lỗi Thường Gặp
-
-| Triệu chứng | Nguyên nhân | Cách sửa |
-|-------------|-------------|----------|
-| Job mãi ở `queued` | Worker chưa kết nối Redis | `docker compose logs worker` kiểm tra lỗi |
-| `Network is unreachable` khi xử lý video | YouTube bị chặn, proxy chưa đúng | Kiểm tra port proxy, bật Allow LAN |
-| Tra từ điển rất chậm | Google Translate bị rate limit | Chờ vài giây, từ phổ biến sẽ cache lại |
-| OCR không nhận dạng được | Ảnh quá mờ/tối | Chụp ảnh đủ sáng, chữ phải rõ ràng |
-| Handwriting không nhận dạng | Chữ quá nhỏ hoặc phức tạp | Viết to hơn, từng chữ riêng biệt |
-| `HuggingFace download failed` | huggingface.co bị chặn | Kiểm tra `HF_ENDPOINT=https://hf-mirror.com` |
-| Login 401 sau restart | Database bị reset | Đăng ký tài khoản mới |
-| Audio không phát được | edge-tts token hết hạn | Tự động fallback sang gTTS |
-| Build frontend lỗi TypeScript | Cache cũ | `docker compose build --no-cache frontend` |
-
----
-
-## 🔮 Roadmap Phát Triển
-
-- [ ] **Flashcard system** — tự động tạo thẻ học từ subtitle video
-- [ ] **Spaced repetition** — lịch ôn tập thông minh dựa trên Anki algorithm
-- [ ] **Grammar analysis** — phân tích cấu trúc câu, gắn nhãn từ loại
-- [ ] **Karaoke mode** — highlight từng từ theo thời gian thực khi video chạy
-- [ ] **Mobile app** — React Native wrapper
-- [ ] **Offline mode** — tải video về để học không cần internet
-- [ ] **Community** — chia sẻ video hay giữa người dùng
-- [ ] **Progress tracking** — theo dõi số từ đã học, streak hàng ngày
+*Last updated: 2026-03-26*

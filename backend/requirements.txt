@@ -39,3 +39,6 @@ anthropic>=0.25.0
 # --- OCR ------
 easyocr==1.7.1
 Pillow>=10.0.0
+
+# --- Monitoring ------
+psutil>=5.9.0

@@ -21,7 +21,13 @@ logger = get_task_logger(__name__)
 @celery_app.task(
     bind=True,
     name="worker.tasks.process_video_task",
-    max_retries=1,
+    queue="video_queue",
+    max_retries=2,
+    soft_time_limit=900,
+    hard_time_limit=1200,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_backoff_max=120,
 )
 def process_video_task(self, job_id: int):
     """Celery task xử lý video YouTube trong background."""
@@ -99,6 +105,10 @@ def process_video_task(self, job_id: int):
         job.finished_at     = datetime.now(timezone.utc)
         db.commit()
 
+        # ── Đánh dấu hoàn thành trong Redis ──
+        from services.video_cache import mark_video_done
+        mark_video_done(job.user_id, vid, video.id)
+
         logger.info(f"Job {job_id} done: video_id={video.id}, {len(subtitles)} subtitles, source={sub_source}")
 
     except Exception as exc:
@@ -112,6 +122,14 @@ def process_video_task(self, job_id: int):
             db.commit()
         except Exception as db_err:
             logger.error(f"Failed to update job status: {db_err}")
+
+        # ── Xóa Redis marker để cho phép retry ──
+        try:
+            from services.video_cache import mark_video_failed
+            mark_video_failed(vid)
+        except Exception:
+            pass
+
         raise
 
     finally:

@@ -7,11 +7,13 @@ interface VideoPlayerProps {
     videoId: string
     onTimeUpdate: (time: number) => void
     onReady?: () => void
+    /** Called when video starts playing (true) or pauses/stops (false) */
+    onPausedChange?: (isPaused: boolean) => void
     compact?: boolean
 }
 
 export default function VideoPlayer({
-    videoId, onTimeUpdate, onReady, compact = false,
+    videoId, onTimeUpdate, onReady, onPausedChange, compact = false,
 }: VideoPlayerProps) {
     const playerRef = useRef<YouTubePlayer | null>(null)
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -24,7 +26,7 @@ export default function VideoPlayer({
         stopPolling()
         intervalRef.current = setInterval(() => {
             if (playerRef.current?.getCurrentTime) onTimeUpdate(playerRef.current.getCurrentTime())
-        }, 200)
+        }, 0)
     }, [onTimeUpdate, stopPolling])
 
     useEffect(() => () => stopPolling(), [stopPolling])
@@ -43,9 +45,13 @@ export default function VideoPlayer({
 
     const handleReady = (e: YouTubeEvent) => { playerRef.current = e.target; onReady?.() }
     const handleStateChange = (e: YouTubeEvent) => {
-        if (e.data === 1 || e.data === 3) startPolling()
-        else {
+        // YouTube player state: 1 = playing, 3 = buffering/loading
+        if (e.data === 1 || e.data === 3) {
+            startPolling()
+            onPausedChange?.(false)
+        } else {
             stopPolling()
+            onPausedChange?.(true)
             if (playerRef.current?.getCurrentTime) onTimeUpdate(playerRef.current.getCurrentTime())
         }
     }

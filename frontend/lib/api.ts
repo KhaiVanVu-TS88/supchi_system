@@ -65,9 +65,22 @@ export const dictionaryApi = {
 
 // ── Types ──
 export interface TokenResponse { access_token: string; refresh_token: string }
-// export interface UserInfo { id: number; username: string; email: string; created_at: string }
 export interface UserInfo { id: number; username: string; email: string; role: string; created_at: string }
-export interface AnalyzeJobResponse { job_id: number; status: string; message: string }
+
+/**
+ * ⚡ AnalyzeJobResponse v4:
+ * - job_id: nếu video mới → dùng để poll
+ * - video_id: nếu video đã xử lý → dùng để navigate thẳng
+ * - source: "new" | "cached" | "processing"
+ */
+export interface AnalyzeJobResponse {
+  job_id: number | null
+  video_id: number | null
+  status: 'queued' | 'processing' | 'done'
+  message: string
+  source: 'new' | 'cached' | 'processing'
+}
+
 export interface JobStatus {
   id: number; status: 'queued' | 'processing' | 'done' | 'failed'; progress: number
   youtube_url: string; title: string | null; subtitle_source: string | null

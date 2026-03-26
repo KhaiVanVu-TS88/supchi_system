@@ -16,10 +16,12 @@ class Video(Base):
 
     id            = Column(Integer, primary_key=True, index=True)
     user_id       = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    youtube_url   = Column(String(500), nullable=False)
+    youtube_url   = Column(String(500), nullable=False, index=True)   # index cho lookup theo URL
     video_id      = Column(String(20),  nullable=False, index=True)   # YouTube video ID (11 ký tự)
-    title         = Column(String(500), nullable=True)                 # Tiêu đề video (optional)
-    thumbnail_url = Column(String(500), nullable=True)                 # URL ảnh thumbnail
+    title         = Column(String(500), nullable=True)
+    thumbnail_url = Column(String(500), nullable=True)
+    is_deleted    = Column(Integer, default=0, nullable=False)       # Soft delete flag (0=active, 1=deleted)
+    deleted_at    = Column(DateTime, nullable=True)                  # Thời gian xóa
     created_at    = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
@@ -45,6 +47,7 @@ class Subtitle(Base):
     chinese     = Column(Text,   nullable=False)
     pinyin      = Column(Text,   nullable=False)
     vietnamese  = Column(Text,   nullable=False)
+    is_deleted  = Column(Integer, default=0, nullable=False)  # Soft delete flag
 
     # Relationship
     video = relationship("Video", back_populates="subtitles")
