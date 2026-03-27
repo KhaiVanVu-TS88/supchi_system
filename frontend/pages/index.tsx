@@ -288,10 +288,11 @@ export default function HomePage() {
                         </div>
 
                         {/* ── RIGHT: SUBTITLE PANEL ── */}
-                        {/* overflow-visible: clear overflow context, cho phép scroll container hoạt động đúng */}
+                        {/* Mobile: panel nằm dưới video và có thể cuộn độc lập */}
+                        {/* Desktop: panel chiếm phần bên phải, giữ layout song song */}
                         <div
                             ref={subtitleRef}
-                            className="flex-1 overflow-visible min-h-0"
+                            className="flex-1 min-h-0 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
                         >
                             <SubtitlePanel
                                 subtitles={subtitles}

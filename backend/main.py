@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from core.config import get_settings
 from core.database import create_tables
-from routers import auth, videos, jobs, dictionary, ocr, admin, monitoring
+from routers import auth, videos, jobs, dictionary, ocr, admin, monitoring, pronunciation_router
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 settings = get_settings()
@@ -61,6 +61,7 @@ app.include_router(dictionary.router)
 app.include_router(ocr.router)
 app.include_router(admin.router)
 app.include_router(monitoring.router)
+app.include_router(pronunciation_router.router)
 
 
 @app.get("/health", tags=["System"])

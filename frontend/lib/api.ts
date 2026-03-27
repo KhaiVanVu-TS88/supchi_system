@@ -63,6 +63,48 @@ export const dictionaryApi = {
   audioUrl: (filename: string) => `${BASE_URL}/api/audio/${filename}`,
 }
 
+export const pronunciationApi = {
+  check: async (payload: {
+    userAudio: File
+    videoId?: number
+    sentenceId?: number
+    referenceText?: string
+    referencePinyin?: string
+    referenceAudio?: File
+  }): Promise<PronunciationCheckResponse> => {
+    const token = getToken()
+    const formData = new FormData()
+
+    formData.append('user_audio', payload.userAudio)
+    if (payload.videoId !== undefined) formData.append('video_id', String(payload.videoId))
+    if (payload.sentenceId !== undefined) formData.append('sentence_id', String(payload.sentenceId))
+    if (payload.referenceText) formData.append('reference_text', payload.referenceText)
+    if (payload.referencePinyin) formData.append('reference_pinyin', payload.referencePinyin)
+    if (payload.referenceAudio) formData.append('reference_audio', payload.referenceAudio)
+
+    const headers: Record<string, string> = {}
+    if (token) headers['Authorization'] = `Bearer ${token}`
+
+    const res = await fetch(`${BASE_URL}/api/pronunciation/check`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    })
+
+    if (res.status === 401 && typeof window !== 'undefined') {
+      clearTokens(); window.location.href = '/auth/login'
+      throw new Error('Phiên đăng nhập hết hạn.')
+    }
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.detail ?? `Lỗi ${res.status}`)
+    }
+
+    return res.json()
+  }
+}
+
 // ── Types ──
 export interface TokenResponse { access_token: string; refresh_token: string }
 export interface UserInfo { id: number; username: string; email: string; role: string; created_at: string }
@@ -101,4 +143,37 @@ export interface DictionaryEntry {
   example: { zh: string; vi: string }
   audio_url: string
   definitions_en: string[]
+}
+
+export interface SyllableScore {
+  character: string
+  pinyin: string
+  expected_tone: number
+  user_tone: number
+  tone_score: number
+  initial_score: number
+  final_score: number
+  overall_score: number
+  errors: string[]
+  start_time: number
+  end_time: number
+}
+
+export interface Recommendation {
+  type: string
+  focus: string
+  message: string
+  examples?: string
+}
+
+export interface PronunciationCheckResponse {
+  overall_score: number
+  syllable_results: SyllableScore[]
+  summary: string
+  recommendations: Recommendation[]
+  recognized_text?: string | null
+  text_similarity_score: number
+  tone_score: number
+  acoustic_score: number
+  duration_seconds: number
 }

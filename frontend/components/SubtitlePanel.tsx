@@ -1,5 +1,5 @@
 /**
- * components/SubtitlePanel.tsx v5.0
+ * components/SubtitlePanel.tsx v5.1
  *
  * ⚡ PERFORMANCE OPTIMIZATIONS:
  *
@@ -54,15 +54,13 @@ function fmtTime(seconds: number): string {
 function isCardCentered(
   card: HTMLElement,
   container: HTMLElement,
-  tolerancePx = 3  // px tolerance — card cách center không quá 3px thì coi là "centered"
+  tolerancePx = 3
 ): boolean {
   const containerHeight = container.clientHeight
   const cardTop        = card.offsetTop
   const cardHeight     = card.offsetHeight
 
-  // Tính scrollTop hiện tại để card nằm centered
   const idealScrollTop = cardTop - (containerHeight / 2) + (cardHeight / 2)
-  // scrollTop thực tế của container
   const actualScrollTop = container.scrollTop
 
   return Math.abs(actualScrollTop - idealScrollTop) <= tolerancePx
@@ -142,9 +140,7 @@ export default function SubtitlePanel({
 }: SubtitlePanelProps) {
   const listRef      = useRef<HTMLDivElement>(null)
   const prevIndexRef = useRef<number>(-1)
-  // User đang scroll thủ công → không auto-scroll
   const isUserScrolling = useRef(false)
-  // Debounce timer — sau khi user scroll xong mới re-enable auto-scroll
   const scrollResumeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ⚡ Binary search O(log n)
@@ -155,13 +151,6 @@ export default function SubtitlePanel({
 
   /**
    * Auto-scroll: active subtitle LUÔN nằm ở GIỮA viewport.
-   *
-   * Scroll logic:
-   * 1. Chỉ scroll khi activeIndex thay đổi thật sự
-   * 2. Bỏ qua nếu video đang pause (isPaused)
-   * 3. Bỏ qua nếu user đang scroll thủ công (isUserScrolling)
-   * 4. Bỏ qua nếu card đã centered rồi (isCardCentered)
-   * 5. Smooth scroll đến GIỮA viewport
    */
   useEffect(() => {
     if (activeIndex < 0) return
@@ -176,7 +165,6 @@ export default function SubtitlePanel({
     const card  = items[activeIndex]
     if (!card) return
 
-    // ✅ Check: card đã centered rồi → không cần scroll
     if (isCardCentered(card, list)) return
 
     prevIndexRef.current = activeIndex
@@ -185,17 +173,11 @@ export default function SubtitlePanel({
     const cardTop         = card.offsetTop
     const cardHeight      = card.offsetHeight
 
-    // Target: card nằm ở GIỮA viewport
     const targetScrollTop = cardTop - (containerHeight / 2) + (cardHeight / 2)
 
     list.scrollTo({ top: targetScrollTop, behavior: 'smooth' })
   }, [activeIndex, isPaused])
 
-  /**
-   * Track user scroll thủ công.
-   * Khi user cuộn → đánh dấu isUserScrolling = true trong 3 giây.
-   * Sau 3 giây không có scroll event → tự động re-enable auto-scroll.
-   */
   const handleScroll = useCallback(() => {
     if (!isUserScrolling.current) {
       isUserScrolling.current = true
@@ -210,7 +192,6 @@ export default function SubtitlePanel({
     }, 0)
   }, [])
 
-  // Cleanup timer on unmount
   useEffect(() => {
     return () => {
       if (scrollResumeTimer.current) {
@@ -239,7 +220,7 @@ export default function SubtitlePanel({
   const totalDuration = subtitles[subtitles.length - 1]?.end ?? 0
 
   return (
-    <div className="h-[90vh] flex flex-col px-3 sm:px-4 lg:px-5 pt-3 pb-3">
+    <div className="h-full lg:h-[90vh] min-h-0 flex flex-col px-3 sm:px-4 lg:px-5 pt-3 pb-3">
 
       {/* Header */}
       <div className="flex items-center justify-between pb-2 mb-2 flex-shrink-0">

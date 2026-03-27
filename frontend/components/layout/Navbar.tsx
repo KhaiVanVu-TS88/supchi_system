@@ -274,6 +274,7 @@ import { useAuth } from '../../lib/auth-context'
 export const NAV_LINKS = [
   { href: '/', label: 'Video', icon: '🎬', match: (p: string) => p === '/' },
   { href: '/dictionary', label: 'Từ điển', icon: '📖', match: (p: string) => p.startsWith('/dictionary') },
+  { href: '/pronunciation', label: 'Phát âm', icon: '🎤', match: (p: string) => p.startsWith('/pronunciation') },
   { href: '/ocr', label: 'OCR', icon: '🔍', match: (p: string) => p.startsWith('/ocr') },
   { href: '/history', label: 'Lịch sử', icon: '🕐', match: (p: string) => p.startsWith('/history') },
 ]
