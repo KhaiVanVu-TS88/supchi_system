@@ -33,7 +33,11 @@ export default function VideoDetailPage() {
   useEffect(() => {
     if (!user || !id) return
     videosApi.get(Number(id))
-      .then(setVideo)
+      .then(v => {
+        setVideo(v)
+        // Cập nhật last_viewed_at khi user mở video (FIFO)
+        videosApi.markViewed(Number(id)).catch(() => {})
+      })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
   }, [user, id])

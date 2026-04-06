@@ -27,6 +27,9 @@ class Settings:
         "sqlite:///./supchi4.db"  # File DB nằm trong thư mục /app khi chạy Docker
     )
 
+    # ── Video storage ──
+    MAX_VIDEOS_PER_USER: int = int(os.getenv("MAX_VIDEOS_PER_USER", "5"))
+
     # ── CORS ──
     CORS_ORIGINS: list = [
         "http://localhost:3000",

@@ -82,17 +82,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: supchi4-worker-video
-    command: >
-      bash -c "
-        sleep 20 &&
-        celery -A worker.celery_app worker
-        --loglevel=INFO
-        --concurrency=1
-        --max-tasks-per-child=5
-        --max-memory-per-child=4096000
-        -Q video_queue
-        --hostname=video-worker@%h
-      "
+    command: |
+      bash -c "sleep 20 && exec celery -A worker.celery_app worker --loglevel=INFO --concurrency=1 --max-tasks-per-child=5 --max-memory-per-child=4096000 -Q video_queue --hostname=video-worker@%h"
     environment:
       - PYTHONUNBUFFERED=1
       - SECRET_KEY=${SECRET_KEY:-supchi4-change-in-production}

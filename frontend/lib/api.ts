@@ -51,6 +51,8 @@ export const videosApi = {
   list: (skip = 0, limit = 20) => request<VideoSummary[]>(`/api/videos?skip=${skip}&limit=${limit}`),
   get: (id: number) => request<VideoDetail>(`/api/videos/${id}`),
   delete: (id: number) => request<void>(`/api/videos/${id}`, { method: 'DELETE' }),
+  markViewed: (id: number) =>
+    request<{ ok: boolean }>(`/api/videos/${id}/view`, { method: 'PATCH' }),
 }
 
 export const jobsApi = {
@@ -121,6 +123,7 @@ export interface AnalyzeJobResponse {
   status: 'queued' | 'processing' | 'done'
   message: string
   source: 'new' | 'cached' | 'processing'
+  evicted_videos?: string[]
 }
 
 export interface JobStatus {
@@ -129,7 +132,7 @@ export interface JobStatus {
   llm_used: string | null; error_message: string | null; video_id: number | null
   created_at: string; finished_at: string | null
 }
-export interface VideoSummary { id: number; youtube_url: string; video_id: string; title: string | null; thumbnail_url: string | null; subtitle_count: number; created_at: string }
+export interface VideoSummary { id: number; youtube_url: string; video_id: string; title: string | null; thumbnail_url: string | null; subtitle_count: number; created_at: string; last_viewed_at: string | null }
 export interface SubtitleItem { id: number; start_time: number; end_time: number; chinese: string; pinyin: string; vietnamese: string }
 export interface VideoDetail extends VideoSummary { subtitles: SubtitleItem[] }
 

@@ -22,6 +22,7 @@ class Video(Base):
     thumbnail_url = Column(String(500), nullable=True)
     is_deleted    = Column(Integer, default=0, nullable=False)       # Soft delete flag (0=active, 1=deleted)
     deleted_at    = Column(DateTime, nullable=True)                  # Thời gian xóa
+    last_viewed_at = Column(DateTime, nullable=True, index=True)     # Thời gian xem gần nhất (FIFO)
     created_at    = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships

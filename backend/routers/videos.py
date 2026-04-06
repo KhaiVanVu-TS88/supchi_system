@@ -28,6 +28,11 @@ from services.video_cache import (
     mark_video_failed,
     invalidate_video_cache,
 )
+from services.video_storage_service import (
+    enforce_video_limit,
+    update_last_viewed,
+    get_max_videos_per_user,
+)
 
 router = APIRouter(prefix="/api/videos", tags=["Videos"])
 logger = logging.getLogger(__name__)
@@ -57,6 +62,7 @@ class AnalyzeJobResponse(BaseModel):
     status: str
     message: str
     source: str = "new"  # "new" | "cached" | "processing"
+    evicted_videos: List[str] = []  # Danh sách video đã bị tự động xóa
 
 
 class SubtitleOut(BaseModel):
@@ -77,8 +83,25 @@ class VideoOut(BaseModel):
     thumbnail_url: Optional[str]
     subtitle_count: int
     is_deleted: bool = False
+    last_viewed_at: Optional[str] = None  # FIFO: thời gian xem gần nhất
     created_at: str
     class Config: from_attributes = True
+
+
+@router.patch("/{video_id}/view")
+def mark_video_viewed(
+    video_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Cập nhật last_viewed_at khi user mở video.
+    Gọi từ frontend khi iframe/video player ready.
+    """
+    ok = update_last_viewed(video_id, current_user.id, db)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Video không tồn tại.")
+    return {"ok": True}
 
 
 class VideoDetailOut(VideoOut):
@@ -149,7 +172,12 @@ def analyze_video(
             source="processing",
         )
 
-    # ── 3. Giới hạn video đang chờ của user ──
+    # ── 3. FIFO — xóa video cũ nếu đạt giới hạn ──
+    evicted = enforce_video_limit(current_user.id, db)
+    if evicted:
+        logger.info(f"User {current_user.id}: FIFO evicted {len(evicted)} videos: {evicted}")
+
+    # ── 4. Giới hạn video đang chờ của user ──
     pending_count = db.query(ProcessingJob).filter(
         ProcessingJob.user_id == current_user.id,
         ProcessingJob.status.in_(["queued", "processing"]),
@@ -160,7 +188,7 @@ def analyze_video(
             detail="Bạn có quá nhiều video đang chờ xử lý (tối đa 3). Vui lòng đợi hoàn thành.",
         )
 
-    # ── 4. Tạo Job ──
+    # ── 5. Tạo Job ──
     job = ProcessingJob(
         user_id=current_user.id,
         youtube_url=url,
@@ -172,7 +200,7 @@ def analyze_video(
     db.commit()
     db.refresh(job)
 
-    # ── 5. Đánh dấu đang xử lý trong Redis ──
+    # ── 6. Đánh dấu đang xử lý trong Redis ──
     mark_video_processing(yt_video_id, job.id)
 
     # ── 6. Push Celery task ──
@@ -186,6 +214,7 @@ def analyze_video(
         status="queued",
         message="Video đang được xử lý.",
         source="new",
+        evicted_videos=evicted,
     )
 
 
@@ -287,6 +316,7 @@ def _video_out(v: Video) -> VideoOut:
         title=v.title, thumbnail_url=v.thumbnail_url,
         subtitle_count=len(v.subtitles),
         is_deleted=getattr(v, "is_deleted", False),
+        last_viewed_at=v.last_viewed_at.isoformat() if v.last_viewed_at else None,
         created_at=v.created_at.isoformat(),
     )
 
@@ -297,6 +327,7 @@ def _video_detail_out(v: Video) -> VideoDetailOut:
         title=v.title, thumbnail_url=v.thumbnail_url,
         subtitle_count=len(v.subtitles),
         is_deleted=getattr(v, "is_deleted", False),
+        last_viewed_at=v.last_viewed_at.isoformat() if v.last_viewed_at else None,
         created_at=v.created_at.isoformat(),
         subtitles=[
             SubtitleOut(

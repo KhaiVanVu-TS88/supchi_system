@@ -27,6 +27,7 @@ export default function HomePage() {
     const [currentTime, setCurrentTime] = useState(0)
     const [isPaused, setIsPaused] = useState(false)
     const [errorMsg, setErrorMsg] = useState<string | null>(null)
+    const [evictedVideos, setEvictedVideos] = useState<string[]>([])
     const subtitleRef = useRef<HTMLDivElement>(null)
 
     const handleAnalyze = useCallback(async (url: string) => {
@@ -35,10 +36,16 @@ export default function HomePage() {
         try {
             const response = await videosApi.analyze(url)
 
+            // Hiển thị thông báo nếu có video bị xóa tự động
+            if (response.evicted_videos && response.evicted_videos.length > 0) {
+                setEvictedVideos(response.evicted_videos)
+            }
+
             if (response.source === 'cached' && response.video_id) {
                 setStage('transitioning')
                 try {
                     const video = await videosApi.get(response.video_id)
+                    videosApi.markViewed(response.video_id).catch(() => {})
                     await new Promise(r => setTimeout(r, 800))
                     setResult(video); setStage('result')
                     setTimeout(() => subtitleRef.current?.scrollTo({ top: 0 }), 100)
@@ -69,6 +76,8 @@ export default function HomePage() {
         setStage('transitioning')
         try {
             const video = await videosApi.get(videoId)
+            // Cập nhật last_viewed_at (FIFO)
+            videosApi.markViewed(videoId).catch(() => {})
             await new Promise(r => setTimeout(r, 1200))
             setResult(video); setStage('result')
             setTimeout(() => subtitleRef.current?.scrollTo({ top: 0 }), 100)
@@ -226,6 +235,26 @@ export default function HomePage() {
                 >
                     {/* NAVBAR */}
                     <Navbar />
+
+                    {/* FIFO eviction notification */}
+                    {evictedVideos.length > 0 && (
+                        <div className="mx-3 mt-2 px-4 py-2.5 rounded-xl
+                            bg-amber-glow/10 border border-amber-glow/25
+                            flex items-start gap-2.5 animate-slide-up">
+                            <span className="text-amber-glow text-sm mt-0.5">🗑️</span>
+                            <div>
+                                <p className="text-sm text-snow font-medium">
+                                    Đã tự động xóa {evictedVideos.length} video cũ
+                                </p>
+                                <p className="text-xs text-ghost mt-0.5">
+                                    {evictedVideos.join(', ')}
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setEvictedVideos([])}
+                                className="ml-auto text-ghost hover:text-snow text-lg leading-none">×</button>
+                        </div>
+                    )}
 
                     {/* MAIN CONTENT */}
                     {/* Desktop: 2 cột ngang | Mobile: 2 hàng dọc */}

@@ -17,7 +17,17 @@ function formatDate(iso: string) {
   })
 }
 
+function formatRelative(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime()
+  const hours = diff / 3_600_000
+  if (hours < 1) return `${Math.floor(diff / 60_000)} phút trước`
+  if (hours < 24) return `${Math.floor(hours)} giờ trước`
+  const days = Math.floor(hours / 24)
+  return `${days} ngày trước`
+}
+
 export default function VideoCard({ video, onDelete }: Props) {
+  const neverViewed = !video.last_viewed_at
   return (
     <div className="sub-card flex gap-3 sm:gap-4 items-start">
 
@@ -67,6 +77,17 @@ export default function VideoCard({ video, onDelete }: Props) {
             </svg>
             {formatDate(video.created_at)}
           </span>
+          {/* FIFO badge */}
+          {neverViewed ? (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-400 border border-red-500/25
+                             flex items-center gap-1">
+              ⚠️ Chưa xem — sẽ xóa trước
+            </span>
+          ) : (
+            <span className="text-[10px] text-ghost/60 flex items-center gap-1">
+              👁️ {formatRelative(video.last_viewed_at!)}
+            </span>
+          )}
         </div>
 
         {/* Ngày — chỉ mobile, đặt riêng dòng cho dễ đọc */}
