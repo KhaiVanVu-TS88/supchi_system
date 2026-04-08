@@ -30,8 +30,18 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     throw new Error('Phiên đăng nhập hết hạn.')
   }
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.detail ?? `Lỗi ${res.status}`)
+    // Thử parse JSON, nếu thất bại (500 HTML) → throw generic message
+    let errMsg = `Lỗi ${res.status}`
+    try {
+      const ct = res.headers.get('content-type') ?? ''
+      if (ct.includes('json')) {
+        const err = await res.json()
+        errMsg = err.detail ?? errMsg
+      }
+    } catch {
+      // không parse được → dùng generic message
+    }
+    throw new Error(errMsg)
   }
   if (res.status === 204) return undefined as T
   return res.json()
@@ -63,6 +73,20 @@ export const dictionaryApi = {
   lookup: (word: string) => request<DictionaryEntry>(`/api/dictionary?word=${encodeURIComponent(word)}`),
   segment: (text: string) => request<{ text: string; words: string[] }>(`/api/dictionary/segment?text=${encodeURIComponent(text)}`),
   audioUrl: (filename: string) => `${BASE_URL}/api/audio/${filename}`,
+
+  // AI-enhanced dictionary
+  quickLookup: (word: string, meanings_vi: string[], definitions_en: string[]) => {
+    const params = new URLSearchParams({ word, meanings_vi: meanings_vi.join('|'), definitions_en: definitions_en.join('|') })
+    return request<DictionaryAiQuick>(`/api/dictionary/ai/quick?${params}`)
+  },
+  fullAnalysis: (word: string, pinyin: string, meanings_vi: string[], definitions_en: string[]) => {
+    const params = new URLSearchParams({ word, pinyin, meanings_vi: meanings_vi.join('|'), definitions_en: definitions_en.join('|') })
+    return request<DictionaryAiFull>(`/api/dictionary/ai/full?${params}`)
+  },
+  smartTokenize: (sentence: string, translation: string) => {
+    const params = new URLSearchParams({ sentence, translation })
+    return request<DictionaryAiToken[]>(`/api/dictionary/ai/tokenize?${params}`)
+  },
 }
 
 export const pronunciationApi = {
@@ -146,6 +170,43 @@ export interface DictionaryEntry {
   example: { zh: string; vi: string }
   audio_url: string
   definitions_en: string[]
+}
+
+// AI-enhanced dictionary response types
+export interface DictionaryAiQuick {
+  word: string
+  pinyin: string
+  han_viet: string
+  meaning_vi: string
+  quick_example: { zh: string; vi: string; context: string }
+}
+
+export interface DictionaryAiFull {
+  word: string
+  pinyin: string
+  strokes: number
+  radical: string
+  radical_info: { name: string; meaning: string; stroke_count: number }
+  decomposition: string
+  character_analysis: Array<{
+    char: string; pinyin: string; meaning: string; radical: string; strokes: number; meaning_origin: string
+  }>
+  meanings: { han_viet_goc: string; tieng_viet: string; tieng_anh: string }
+  usage: { formal: string; informal: string; written: string; spoken: string }
+  grammar_pattern: string
+  examples: Array<{ zh: string; pinyin: string; vi: string; context: string }>
+  memorization: { mnemonic: string; story: string; compare_vi: string }
+  related: { same_radical: string[]; same_topic: string[]; opposite: string[] }
+  mistakes: string[]
+  tips: string
+}
+
+export interface DictionaryAiToken {
+  word: string
+  start: number
+  end: number
+  is_clickable: boolean
+  note: string
 }
 
 export interface SyllableScore {

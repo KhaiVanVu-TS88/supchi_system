@@ -1,5 +1,5 @@
 /**
- * components/SubtitlePanel.tsx v5.1
+ * components/SubtitlePanel.tsx v5.3
  *
  * ⚡ PERFORMANCE OPTIMIZATIONS:
  *
@@ -19,9 +19,15 @@
  * 4. Pause detection:
  *    - Khi video pause, auto-scroll ngừng hoạt động
  *    - User có thể tự do explore subtitle list
+ *
+ * v5.3: Popup ở panel-level (ngoài card) → luôn hiển thị đúng trên màn hình
  */
-import React, { useMemo, memo, useRef, useEffect, useCallback } from 'react'
+import React, { useMemo, memo, useRef, useEffect, useCallback, useState } from 'react'
 import type { Subtitle } from '../types/subtitle'
+import dynamic from 'next/dynamic'
+
+// Load WordPopup dynamically (tránh SSR issues)
+const WordPopup = dynamic(() => import('./dictionary/WordPopup'), { ssr: false })
 
 // ── Binary search: Tìm active index O(log n) ──
 function findActiveIndex(subtitles: Subtitle[], currentTime: number): number {
@@ -82,18 +88,62 @@ function SkeletonCard() {
   )
 }
 
+// ── Segment Chinese text (cached) ──
+const segmentCache = new Map<string, string[]>()
+
+async function segmentChinese(text: string): Promise<string[]> {
+    if (segmentCache.has(text)) return segmentCache.get(text)!
+    try {
+        const backendUrl = typeof window !== 'undefined'
+            ? (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8000')
+            : 'http://localhost:8000'
+        const res = await fetch(`${backendUrl}/api/dictionary/segment?text=${encodeURIComponent(text)}`)
+        if (res.ok) {
+            const data = await res.json()
+            segmentCache.set(text, data.words)
+            return data.words
+        }
+    } catch { }
+    // Fallback: tách từng ký tự
+    const chars = Array.from(text).filter(c => c.trim())
+    segmentCache.set(text, chars)
+    return chars
+}
+
 // ── Props interface ──
 interface SubtitleRowProps {
   subtitle: Subtitle
   isActive: boolean
   onClick: () => void
+  onWordClick: (word: string) => void
 }
 
 // ── Single subtitle row (MEMOIZED) ──
-const SubtitleRow = memo<SubtitleRowProps>(function SubtitleRow({ subtitle, isActive, onClick }) {
+const SubtitleRow = memo<SubtitleRowProps>(function SubtitleRow({ subtitle, isActive, onClick, onWordClick }) {
+  const [segmented, setSegmented] = useState<string[] | null>(null)
+
+  // Segment Chinese text khi mount
+  useEffect(() => {
+    setSegmented(null) // reset trước
+    segmentChinese(subtitle.chinese).then(setSegmented)
+  }, [subtitle.chinese])
+
+  // Click vào card → seek video
+  const handleCardClick = useCallback(() => {
+    onClick()
+  }, [onClick])
+
+  // Click vào từ Hán → mở popup (truyền word lên panel)
+  const handleWordClick = useCallback((e: React.MouseEvent, word: string) => {
+    e.stopPropagation()
+    e.preventDefault()
+    if (!word || !/[\u4e00-\u9fff]/.test(word)) return
+    onWordClick(word)
+  }, [onWordClick])
+
   return (
     <div
-      onClick={onClick}
+      onClick={handleCardClick}
       data-subtitle-card=""
       className={`
         relative rounded-xl p-4 border transition-all duration-200 cursor-pointer mb-2 mx-1
@@ -113,7 +163,23 @@ const SubtitleRow = memo<SubtitleRowProps>(function SubtitleRow({ subtitle, isAc
         <span>{fmtTime(subtitle.end)}</span>
       </p>
 
-      <p className="font-serif text-lg text-snow mb-1 leading-relaxed">{subtitle.chinese}</p>
+      {/* Chữ Hán — clickable words */}
+      <div className="font-serif text-lg text-snow mb-1 leading-relaxed flex flex-wrap gap-x-0.5">
+        {segmented
+          ? segmented.map((word, i) => (
+              <span
+                key={i}
+                onClick={e => handleWordClick(e, word)}
+                className={/[\u4e00-\u9fff]/.test(word)
+                  ? 'cursor-pointer hover:bg-amber-glow/20 hover:text-amber-glow rounded px-0.5 transition-colors'
+                  : 'cursor-default'
+                }
+              >{word}</span>
+            ))
+          : subtitle.chinese
+        }
+      </div>
+
       <p className="text-xs font-mono text-amber-glow/80 mb-1.5 leading-relaxed">{subtitle.pinyin}</p>
 
       <div className={`h-px w-full mb-1.5 ${isActive ? 'bg-amber-glow/20' : 'bg-white/5'}`} />
@@ -143,11 +209,24 @@ export default function SubtitlePanel({
   const isUserScrolling = useRef(false)
   const scrollResumeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Popup state — ở LEVEL PANEL (không phải row)
+  const [popupWord, setPopupWord] = useState<string | null>(null)
+
   // ⚡ Binary search O(log n)
   const activeIndex = useMemo(
     () => findActiveIndex(subtitles, currentTime),
     [subtitles, currentTime]
   )
+
+  // Mở popup khi click từ
+  const handleWordClick = useCallback((word: string) => {
+    setPopupWord(word)
+  }, [])
+
+  // Đóng popup
+  const handleClosePopup = useCallback(() => {
+    setPopupWord(null)
+  }, [])
 
   /**
    * Auto-scroll: active subtitle LUÔN nằm ở GIỮA viewport.
@@ -220,49 +299,60 @@ export default function SubtitlePanel({
   const totalDuration = subtitles[subtitles.length - 1]?.end ?? 0
 
   return (
-    <div className="h-full lg:h-[90vh] min-h-0 flex flex-col px-3 sm:px-4 lg:px-5 pt-3 pb-3">
+    <>
+      <div className="h-full lg:h-[90vh] min-h-0 flex flex-col px-3 sm:px-4 lg:px-5 pt-3 pb-3">
 
-      {/* Header */}
-      <div className="flex items-center justify-between pb-2 mb-2 flex-shrink-0">
-        <div>
-          <h2 className="text-xs font-medium tracking-widest uppercase text-ghost">
-            Câu thoại
-          </h2>
-          {activeIndex >= 0 && (
-            <p className="text-[11px] text-amber-glow/70 mt-0.5">
-              {activeIndex + 1} / {subtitles.length}
-            </p>
-          )}
+        {/* Header */}
+        <div className="flex items-center justify-between pb-2 mb-2 flex-shrink-0">
+          <div>
+            <h2 className="text-xs font-medium tracking-widest uppercase text-ghost">
+              Câu thoại
+            </h2>
+            {activeIndex >= 0 && (
+              <p className="text-[11px] text-amber-glow/70 mt-0.5">
+                {activeIndex + 1} / {subtitles.length}
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-mono bg-white/5 border border-white/8 rounded px-1.5 py-0.5 text-ghost">
+              {subtitles.length}
+            </span>
+            <span className="text-[11px] font-mono bg-white/5 border border-white/8 rounded px-1.5 py-0.5 text-ghost">
+              {fmtTime(totalDuration)}
+            </span>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-mono bg-white/5 border border-white/8 rounded px-1.5 py-0.5 text-ghost">
-            {subtitles.length}
-          </span>
-          <span className="text-[11px] font-mono bg-white/5 border border-white/8 rounded px-1.5 py-0.5 text-ghost">
-            {fmtTime(totalDuration)}
-          </span>
+
+        {/* Scrollable list */}
+        <div
+          ref={listRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto overscroll-contain pr-1 stagger"
+          style={{ contain: 'layout style' }}
+        >
+          {subtitles.map((sub, idx) => (
+            <SubtitleRow
+              key={`${sub.start}-${sub.end}-${idx}`}
+              subtitle={sub}
+              isActive={idx === activeIndex}
+              onClick={() => onSeek(sub.start)}
+              onWordClick={handleWordClick}
+            />
+          ))}
+          {/* Bottom padding: tránh card cuối bị cắt sát mép dưới */}
+          <div className="h-16" aria-hidden />
         </div>
+
       </div>
 
-      {/* Scrollable list */}
-      <div
-        ref={listRef}
-        onScroll={handleScroll}
-        className="flex-1 overflow-y-auto overscroll-contain pr-1 stagger"
-        style={{ contain: 'layout style' }}
-      >
-        {subtitles.map((sub, idx) => (
-          <SubtitleRow
-            key={`${sub.start}-${sub.end}-${idx}`}
-            subtitle={sub}
-            isActive={idx === activeIndex}
-            onClick={() => onSeek(sub.start)}
-          />
-        ))}
-        {/* Bottom padding: tránh card cuối bị cắt sát mép dưới */}
-        <div className="h-16" aria-hidden />
-      </div>
-
-    </div>
+      {/* Word Popup — ở LEVEL PANEL, KHÔNG trong card → hiển thị giữa màn hình */}
+      {popupWord && (
+        <WordPopup
+          word={popupWord}
+          onClose={handleClosePopup}
+        />
+      )}
+    </>
   )
 }

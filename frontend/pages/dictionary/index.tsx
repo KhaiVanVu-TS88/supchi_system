@@ -6,7 +6,7 @@ import Head from 'next/head'
 import { useRouter } from 'next/router'
 import Navbar from '../../components/layout/Navbar'
 import DictionaryCard from '../../components/dictionary/DictionaryCard'
-import { dictionaryApi, type DictionaryEntry } from '../../lib/api'
+import { dictionaryApi, type DictionaryEntry, type DictionaryAiFull } from '../../lib/api'
 
 const RECENT_KEY = 'dict_recent'
 const MAX_RECENT = 10
@@ -26,19 +26,29 @@ export default function DictionaryPage() {
     const router = useRouter()
     const [query, setQuery] = useState('')
     const [entry, setEntry] = useState<DictionaryEntry | null>(null)
+    const [aiFull, setAiFull] = useState<DictionaryAiFull | null>(null)
     const [loading, setLoading] = useState(false)
+    const [aiLoading, setAiLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [recent, setRecent] = useState<string[]>([])
 
     const doSearch = useCallback(async (word: string) => {
         const w = word.trim()
         if (!w) return
-        setLoading(true); setError(null); setEntry(null)
+        setLoading(true); setError(null); setEntry(null); setAiFull(null)
         try {
+            // Bước 1: Lấy dữ liệu từ điển CC-CEDICT (luôn cần)
             const result = await dictionaryApi.lookup(w)
             setEntry(result)
             addRecent(w)
             setRecent(getRecent())
+
+            // Bước 2: Gọi AI phân tích sâu (chạy song song, không block UI)
+            setAiLoading(true)
+            dictionaryApi.fullAnalysis(w, result.pinyin, result.meanings_vi, result.definitions_en)
+                .then(setAiFull)
+                .catch(() => { /* AI không khả dụng → vẫn hiển thị từ điển thường */ })
+                .finally(() => setAiLoading(false))
         } catch (e) {
             setError(e instanceof Error ? e.message : 'Có lỗi xảy ra.')
         } finally {
@@ -68,7 +78,7 @@ export default function DictionaryPage() {
                             📖 Từ điển
                         </h1>
                         <p className="text-ghost text-xs sm:text-sm">
-                            CC-CEDICT · 120,000+ từ · Pinyin · Phát âm
+                            CC-CEDICT · 120,000+ từ · Pinyin · Phát âm · AI phân tích
                         </p>
                     </div>
 
@@ -171,7 +181,7 @@ export default function DictionaryPage() {
                         </div>
                     )}
 
-                    {entry && !loading && <DictionaryCard entry={entry} backendUrl={BACKEND_URL} />}
+                    {entry && !loading && <DictionaryCard entry={entry} aiFull={aiFull} aiLoading={aiLoading} backendUrl={BACKEND_URL} />}
                 </main>
             </div>
         </>
