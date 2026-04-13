@@ -9,7 +9,7 @@ GET  /api/auth/me        — Lấy thông tin user hiện tại
 from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, field_validator
 from core.database import get_db
 from core.security import hash_password, verify_password, create_access_token, create_refresh_token, decode_token
 from core.config import get_settings
@@ -24,7 +24,7 @@ settings = get_settings()
 
 class RegisterRequest(BaseModel):
     username: str
-    email: EmailStr
+    email: str
     password: str
 
     @field_validator("username")
@@ -39,6 +39,13 @@ class RegisterRequest(BaseModel):
             raise ValueError("Username chỉ được chứa chữ, số, _ và -.")
         return v
 
+    @field_validator("email")
+    @classmethod
+    def email_valid(cls, v):
+        if '@' not in v or '.' not in v:
+            raise ValueError("Email không hợp lệ.")
+        return v.strip().lower()
+
     @field_validator("password")
     @classmethod
     def password_valid(cls, v):
@@ -48,8 +55,13 @@ class RegisterRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str
+
+    @field_validator("email")
+    @classmethod
+    def email_valid(cls, v):
+        return v.strip().lower()
 
 
 class RefreshRequest(BaseModel):

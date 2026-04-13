@@ -274,8 +274,8 @@ import { useAuth } from '../../lib/auth-context'
 export const NAV_LINKS = [
   { href: '/', label: 'Video', icon: '🎬', match: (p: string) => p === '/' },
   { href: '/dictionary', label: 'Từ điển', icon: '📖', match: (p: string) => p.startsWith('/dictionary') },
-  { href: '/pronunciation', label: 'Phát âm', icon: '🎤', match: (p: string) => p.startsWith('/pronunciation') },
-  { href: '/ocr', label: 'OCR', icon: '🔍', match: (p: string) => p.startsWith('/ocr') },
+  // { href: '/pronunciation', label: 'Phát âm', icon: '🎤', match: (p: string) => p.startsWith('/pronunciation') },
+  // { href: '/ocr', label: 'OCR', icon: '🔍', match: (p: string) => p.startsWith('/ocr') },
   { href: '/history', label: 'Lịch sử', icon: '🕐', match: (p: string) => p.startsWith('/history') },
 ]
 
@@ -361,7 +361,7 @@ export default function Navbar() {
             {/* User badge — desktop */}
             {user && (
               <>
-                {/* Admin link — chỉ hiện khi role=admin */}
+                {/* Admin link — // NOTE: /admin page removed, uncomment if re-added
                 {user.role === 'admin' && (
                   <Link href="/admin"
                     className="hidden sm:flex items-center gap-1.5 px-3 py-1.5
@@ -374,7 +374,7 @@ export default function Navbar() {
                     </svg>
                     Admin
                   </Link>
-                )}
+                ) */}
                 <div className="hidden sm:flex items-center gap-2 px-2.5 py-1.5 glass rounded-lg">
                   <div className="w-6 h-6 rounded-full bg-amber-glow/20 flex items-center
                                   justify-center text-amber-glow text-[11px] font-bold">
@@ -480,7 +480,7 @@ export default function Navbar() {
                   <div className="border-t border-white/6 py-1">
                     {user ? (
                       <>
-                        {/* Admin link trong dropdown — chỉ hiện khi role=admin */}
+                        {/* Admin link in dropdown — // NOTE: /admin page removed
                         {user.role === 'admin' && (
                           <Link href="/admin"
                             className="flex items-center gap-3 px-4 py-3.5 text-sm
@@ -492,7 +492,7 @@ export default function Navbar() {
                             </svg>
                             <span>Trang Admin</span>
                           </Link>
-                        )}
+                        ) */}
                         <button
                           onClick={() => { logout(); setMenuOpen(false) }}
                           className="w-full flex items-center gap-3 px-4 py-3.5 text-sm

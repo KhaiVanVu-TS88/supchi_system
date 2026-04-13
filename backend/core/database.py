@@ -95,5 +95,4 @@ def get_db():
 
 def create_tables():
     from models import user, video, job  # noqa: F401
-    from pronunciation import models as pronunciation_models  # noqa: F401
     Base.metadata.create_all(bind=engine)

@@ -121,10 +121,13 @@ export default function HomePage() {
                                     AI tự động tạo subtitle · Chữ Hán · Pinyin · Tiếng Việt
                                 </p>
                                 <div className="flex flex-wrap justify-center gap-2 mb-8">
-                                    {['🎬 Video YouTube', '📖 Từ điển', '🔍 OCR ảnh', '✍️ Viết tay'].map(f => (
+                                    {['🎬 Video YouTube', '📖 Từ điển'].map(f => (
                                         <span key={f} className="text-xs px-3 py-1.5 glass rounded-full
                                              text-ghost border border-white/6">{f}</span>
                                     ))}
+                                    {/* // NOTE: OCR and Handwriting features removed
+                                        '🔍 OCR ảnh', '✍️ Viết tay'
+                                    */}
                                 </div>
                                 {!user ? (
                                     <div className="w-full glass rounded-2xl p-6 sm:p-8 text-center border border-white/8">
