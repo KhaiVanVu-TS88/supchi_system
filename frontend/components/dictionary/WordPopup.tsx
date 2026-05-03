@@ -21,7 +21,6 @@ export default function WordPopup({ word, onClose, anchorRect }: Props) {
     const [error, setError] = useState<string | null>(null)
     const audioRef = useRef<HTMLAudioElement | null>(null)
     const popupRef = useRef<HTMLDivElement>(null)
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8000'
 
     // ── Position: LUÔN ở giữa màn hình ──────────────────────────────────
 
@@ -90,9 +89,7 @@ export default function WordPopup({ word, onClose, anchorRect }: Props) {
 
     const playAudio = () => {
         if (!dictEntry) return
-        const url = dictEntry.audio_url.startsWith('http')
-            ? dictEntry.audio_url
-            : `${backendUrl}${dictEntry.audio_url}`
+        const url = dictEntry.audio_url
         if (!audioRef.current) audioRef.current = new Audio(url)
         audioRef.current.currentTime = 0
         audioRef.current.play().catch(() => { })

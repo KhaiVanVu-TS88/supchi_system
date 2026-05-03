@@ -22,6 +22,9 @@ frontend/.next/
 frontend/out/
 frontend/node_modules/
 
+# Secrets (YouTube cookies cho yt-dlp — không commit)
+secrets/
+
 # Audio/Video temp files
 /tmp/
 *.wav

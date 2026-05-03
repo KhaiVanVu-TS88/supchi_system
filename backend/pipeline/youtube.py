@@ -130,49 +130,65 @@
 pipeline/youtube.py - Tải audio từ YouTube
 Tự động dùng proxy nếu có HTTP_PROXY/HTTPS_PROXY trong environment.
 """
+import logging
 import os
 import re
 import glob
 import tempfile
 import yt_dlp
+from yt_dlp.utils import DownloadError, ExtractorError
+
+from pipeline.ytdlp_common import (
+    iter_enriched_youtube_opts,
+    log_youtube_extractor_exhausted,
+    youtube_error_is_retryable,
+)
+
+logger = logging.getLogger(__name__)
 
 
 def download_audio(youtube_url: str) -> str:
     temp_dir = tempfile.mkdtemp()
     output_path = os.path.join(temp_dir, "audio")
 
-    # Đọc proxy từ environment (được set trong docker-compose)
-    proxy = os.getenv("HTTPS_PROXY") or os.getenv("HTTP_PROXY") or os.getenv("https_proxy") or os.getenv("http_proxy")
-
-    ydl_opts = {
-        "format": "bestaudio[ext=m4a]/bestaudio/best",
+    # Chuỗi rộng: một số client chỉ có opus/webm hoặc chỉ khối best — tránh "Requested format is not available".
+    base_opts = {
+        "format": (
+            "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio[ext=opus]/"
+            "bestaudio/ba/worstaudio/best/worst/bestvideo+bestaudio/best"
+        ),
         "postprocessors": [{
             "key": "FFmpegExtractAudio",
             "preferredcodec": "wav",
             "preferredquality": "192",
         }],
         "outtmpl": output_path,
-        "http_headers": {
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/120.0.0.0 Safari/537.36"
-            ),
-            "Accept-Language": "en-US,en;q=0.9",
-        },
-        "extractor_args": {
-            "youtube": {"player_client": ["android", "web"]}
-        },
         "quiet": False,
         "retries": 3,
     }
 
-    # Thêm proxy nếu có
-    if proxy:
-        ydl_opts["proxy"] = proxy
-
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([youtube_url])
+    last_err: BaseException | None = None
+    for label, ydl_opts in iter_enriched_youtube_opts(base_opts):
+        try:
+            logger.info("yt-dlp tải audio (strategy=%s)", label)
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([youtube_url])
+            break
+        except (DownloadError, ExtractorError, OSError) as e:
+            last_err = e
+            if youtube_error_is_retryable(e):
+                logger.warning(
+                    "yt-dlp strategy=%s thất bại, thử player_client khác: %s",
+                    label,
+                    e,
+                )
+                continue
+            raise
+    else:
+        if last_err is not None:
+            log_youtube_extractor_exhausted(last_err)
+            raise last_err
+        raise RuntimeError("Không có chiến lược yt-dlp")
 
     audio_file = output_path + ".wav"
     if not os.path.exists(audio_file):

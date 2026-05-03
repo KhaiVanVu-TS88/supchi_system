@@ -70,9 +70,9 @@ export default function VideoPlayer({
 
             {/* aspect-video = padding-top: 56.25% trick → luôn giữ tỉ lệ 16:9 */}
             <div className="relative w-full aspect-video bg-black
-                      lg:rounded-2xl lg:overflow-hidden
-                      lg:border lg:border-gray-100
-                      lg:shadow-[0_12px_40px_rgba(31,41,55,0.12),0_4px_12px_rgba(76,175,136,0.08)]">
+                      xl:rounded-2xl xl:overflow-hidden
+                      xl:border xl:border-gray-100
+                      xl:shadow-[0_12px_40px_rgba(31,41,55,0.12),0_4px_12px_rgba(76,175,136,0.08)]">
                 <YouTube
                     videoId={videoId}
                     onReady={handleReady}

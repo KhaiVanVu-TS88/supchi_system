@@ -6,6 +6,7 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import Navbar from '../../components/layout/Navbar'
+import { MobileBottomTabBar } from '../../components/layout/mainNavTabs'
 import VideoCard from '../../components/history/VideoCard'
 import { videosApi, type VideoSummary } from '../../lib/api'
 import { useAuth } from '../../lib/auth-context'
@@ -103,6 +104,7 @@ export default function HistoryPage() {
             </div>
           )}
         </main>
+        <MobileBottomTabBar />
       </div>
     </>
   )

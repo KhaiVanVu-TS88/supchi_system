@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from core.config import get_settings
 from core.database import create_tables
-from routers import auth, videos, jobs, dictionary, ocr, admin, monitoring, pronunciation_router
+from routers import auth, videos, jobs, dictionary, admin, monitoring
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 settings = get_settings()
@@ -23,13 +23,6 @@ def _prewarm_all():
         ensure_loaded()
     except Exception as e:
         logging.getLogger(__name__).error(f"Dictionary preload failed: {e}")
-    try:
-        from services.ocr_service import get_reader
-        get_reader()
-    except ImportError:
-        pass
-    except Exception as e:
-        logging.getLogger(__name__).warning(f"EasyOCR prewarm failed: {e}")
     try:
         import jieba
         jieba.initialize()
@@ -58,10 +51,8 @@ app.include_router(auth.router)
 app.include_router(videos.router)
 app.include_router(jobs.router)
 app.include_router(dictionary.router)
-app.include_router(ocr.router)
 app.include_router(admin.router)
 app.include_router(monitoring.router)
-app.include_router(pronunciation_router.router)
 
 
 @app.get("/health", tags=["System"])

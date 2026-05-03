@@ -8,7 +8,6 @@ Tối ưu tốc độ:
   1. Static cache 500+ definitions → O(1), 0ms
   2. In-memory LRU cache kết quả lookup → lần 2 trả về ngay
   3. Batch translate chỉ khi thực sự cần (fallback cuối)
-  4. EasyOCR model singleton (tải 1 lần)
 """
 import os
 import re

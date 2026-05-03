@@ -75,7 +75,7 @@ function isCardCentered(
 // ── Skeleton ──
 function SkeletonCard() {
   return (
-    <div className="rounded-xl p-4 border border-gray-100 space-y-3 mx-1 mb-2">
+    <div className="rounded-xl p-4 border border-sub-line bg-sub-card/60 space-y-3 mx-1 mb-2 shadow-sub-card">
       <div className="flex gap-2 items-center">
         <div className="skeleton h-3 w-8 rounded" />
         <div className="skeleton h-3 w-24 rounded" />
@@ -94,10 +94,7 @@ const segmentCache = new Map<string, string[]>()
 async function segmentChinese(text: string): Promise<string[]> {
     if (segmentCache.has(text)) return segmentCache.get(text)!
     try {
-        const backendUrl = typeof window !== 'undefined'
-            ? (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8000')
-            : 'http://localhost:8000'
-        const res = await fetch(`${backendUrl}/api/dictionary/segment?text=${encodeURIComponent(text)}`)
+        const res = await fetch(`/api/dictionary/segment?text=${encodeURIComponent(text)}`)
         if (res.ok) {
             const data = await res.json()
             segmentCache.set(text, data.words)
@@ -148,30 +145,30 @@ const SubtitleRow = memo<SubtitleRowProps>(function SubtitleRow({ subtitle, isAc
       className={`
         relative rounded-xl p-4 border transition-all duration-200 cursor-pointer mb-2 mx-1
         ${isActive
-          ? 'bg-brand-active/95 border-amber-glow/45 shadow-edu-md ring-1 ring-amber-glow/20'
-          : 'bg-ink-700 border-gray-100 hover:bg-white hover:border-gray-200 hover:shadow-edu'
+          ? 'bg-sub-active border-sub-accent/40 shadow-sub-active ring-1 ring-sub-accent/12'
+          : 'bg-sub-card border-sub-line shadow-sub-card hover:border-sub-accent/30 hover:shadow-[0_2px_10px_rgba(0,0,0,0.04)]'
         }
       `}
     >
       {isActive && (
-        <span className="absolute right-3 top-3 w-1.5 h-1.5 rounded-full bg-amber-glow animate-pulse" />
+        <span className="absolute right-3 top-3 w-1.5 h-1.5 rounded-full bg-sub-accent animate-pulse" />
       )}
 
-      <p className="text-[10px] font-mono text-ghost mb-1.5 flex items-center gap-1.5">
-        <span className={isActive ? 'text-amber-glow/60' : ''}>{fmtTime(subtitle.start)}</span>
-        <span className="opacity-30">→</span>
+      <p className="text-[10px] font-mono text-sub-time mb-1.5 flex items-center gap-1.5 tabular-nums">
+        <span>{fmtTime(subtitle.start)}</span>
+        <span className="text-sub-time/45">→</span>
         <span>{fmtTime(subtitle.end)}</span>
       </p>
 
       {/* Chữ Hán — clickable words */}
-      <div className="font-serif text-lg text-snow mb-1 leading-relaxed flex flex-wrap gap-x-0.5">
+      <div className="font-serif text-lg text-sub-ink mb-1 leading-relaxed flex flex-wrap gap-x-0.5">
         {segmented
           ? segmented.map((word, i) => (
               <span
                 key={i}
                 onClick={e => handleWordClick(e, word)}
                 className={/[\u4e00-\u9fff]/.test(word)
-                  ? 'cursor-pointer hover:bg-amber-glow/20 hover:text-amber-glow rounded px-0.5 transition-colors'
+                  ? 'cursor-pointer rounded px-0.5 transition-colors hover:bg-sub-accent/12 hover:text-sub-accent'
                   : 'cursor-default'
                 }
               >{word}</span>
@@ -180,11 +177,11 @@ const SubtitleRow = memo<SubtitleRowProps>(function SubtitleRow({ subtitle, isAc
         }
       </div>
 
-      <p className="text-xs font-mono text-amber-glow/80 mb-1.5 leading-relaxed">{subtitle.pinyin}</p>
+      <p className="text-sm font-medium text-sub-pinyin mb-1.5 leading-relaxed tracking-wide">{subtitle.pinyin}</p>
 
-      <div className={`h-px w-full mb-1.5 ${isActive ? 'bg-amber-glow/25' : 'bg-gray-200/80'}`} />
+      <div className="h-px w-full mb-1.5 bg-sub-line" />
 
-      <p className="text-sm text-mist/80 leading-relaxed">{subtitle.vietnamese}</p>
+      <p className="text-sm text-sub-muted leading-relaxed">{subtitle.vietnamese}</p>
     </div>
   )
 })
@@ -282,7 +279,7 @@ export default function SubtitlePanel({
   // Loading state
   if (!subtitles.length) {
     return (
-      <div className="h-full flex flex-col px-3 sm:px-4 lg:px-5 pt-3">
+      <div className="flex h-full flex-col bg-sub-panel px-3 pt-3 sm:px-4 xl:px-5">
         <div className="flex items-center justify-between pb-2 mb-2 flex-shrink-0">
           <div className="skeleton h-4 w-32 rounded" />
           <div className="skeleton h-4 w-16 rounded" />
@@ -300,25 +297,25 @@ export default function SubtitlePanel({
 
   return (
     <>
-      <div className="h-full lg:h-[90vh] min-h-0 flex flex-col px-3 sm:px-4 lg:px-5 pt-3 pb-3">
+      <div className="h-full min-h-0 flex flex-col bg-sub-panel px-3 pt-3 pb-3 sm:px-4 xl:h-[90vh] xl:px-5">
 
         {/* Header */}
         <div className="flex items-center justify-between pb-2 mb-2 flex-shrink-0">
           <div>
-            <h2 className="text-xs font-medium tracking-widest uppercase text-ghost">
+            <h2 className="text-[11px] font-medium tracking-[0.12em] uppercase text-sub-muted">
               Câu thoại
             </h2>
             {activeIndex >= 0 && (
-              <p className="text-[11px] text-amber-glow/70 mt-0.5">
+              <p className="text-[11px] text-sub-accent mt-0.5 tabular-nums">
                 {activeIndex + 1} / {subtitles.length}
               </p>
             )}
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-mono bg-gray-50 border border-gray-100 rounded px-1.5 py-0.5 text-ghost">
+            <span className="text-[11px] font-mono bg-sub-card border border-sub-line rounded-lg px-2 py-0.5 text-sub-time tabular-nums shadow-sub-card">
               {subtitles.length}
             </span>
-            <span className="text-[11px] font-mono bg-gray-50 border border-gray-100 rounded px-1.5 py-0.5 text-ghost">
+            <span className="text-[11px] font-mono bg-sub-card border border-sub-line rounded-lg px-2 py-0.5 text-sub-time tabular-nums shadow-sub-card">
               {fmtTime(totalDuration)}
             </span>
           </div>

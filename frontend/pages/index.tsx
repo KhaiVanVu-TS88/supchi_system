@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import Navbar from '../components/layout/Navbar'
+import { MobileBottomTabBar } from '../components/layout/mainNavTabs'
 import UrlInput from '../components/UrlInput'
 import VideoPlayer from '../components/VideoPlayer'
 import SubtitlePanel from '../components/SubtitlePanel'
@@ -117,7 +118,7 @@ export default function HomePage() {
 
             {/* ── IDLE / QUEUED / TRANSITIONING / ERROR ── */}
             {!hasResult && (
-                <div className="min-h-screen flex flex-col">
+                <div className="min-h-screen flex flex-col pb-bottom-nav md:pb-0">
                     <Navbar />
                     <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-8">
 
@@ -139,9 +140,6 @@ export default function HomePage() {
                                         <span key={f} className="text-xs px-3 py-1.5 glass rounded-full
                                              text-ghost border border-gray-100">{f}</span>
                                     ))}
-                                    {/* // NOTE: OCR and Handwriting features removed
-                                        '🔍 OCR ảnh', '✍️ Viết tay'
-                                    */}
                                 </div>
                                 {!user ? (
                                     <div className="w-full glass rounded-2xl p-6 sm:p-8 text-center border border-gray-100">
@@ -299,13 +297,14 @@ export default function HomePage() {
                             </div>
                         )}
                     </main>
+                    <MobileBottomTabBar />
                 </div>
             )}
 
             {/* ── RESULT — FULL SCREEN LAYOUT ── */}
             {hasResult && result && (
                 <div
-                    className="flex flex-col overflow-hidden"
+                    className="flex min-h-0 flex-col overflow-hidden"
                     style={{ height: '100dvh' }}
                 >
                     {/* NAVBAR */}
@@ -331,16 +330,14 @@ export default function HomePage() {
                         </div>
                     )}
 
-                    {/* MAIN CONTENT */}
-                    {/* Desktop: 2 cột ngang | Mobile: 2 hàng dọc */}
-                    <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
+                    {/* MAIN CONTENT — .app-split-video-sub: cột dọc dưới 1280px; 2 cột từ xl */}
+                    <div className="app-split-video-sub flex min-h-0 flex-1 flex-col overflow-hidden xl:flex-row">
 
-                        {/* ── LEFT: VIDEO ── */}
-                        <div className="flex-shrink-0 w-full lg:w-[52%]
-                            flex flex-col
-                            border-b-2 border-gray-100 lg:border-b-0 lg:border-r-2 lg:border-r-gray-100">
-
-                            {/* Video player */}
+                        {/* Cột trái / phía trên: video + điều khiển */}
+                        <div
+                            className="flex w-full max-w-full shrink-0 flex-col border-b-2 border-gray-100
+                                       xl:w-[52%] xl:max-w-[52%] xl:border-b-0 xl:border-r-2 xl:border-r-gray-100"
+                        >
                             <VideoPlayer
                                 videoId={result.video_id}
                                 onTimeUpdate={setCurrentTime}
@@ -348,32 +345,33 @@ export default function HomePage() {
                                 compact
                             />
 
-                            {/* Toolbar mobile */}
-                            <div className="lg:hidden flex items-center gap-2 px-3 py-2
-                              bg-ink-900 border-b border-gray-100 flex-shrink-0">
+                            <div className="flex flex-shrink-0 items-center gap-2 border-b border-gray-100 bg-ink-900 px-3 py-2 xl:hidden">
                                 <span className="flex items-center gap-1.5 text-xs text-ghost">
                                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
                                         stroke="currentColor" strokeWidth="2">
                                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                                     </svg>
-                                    <span className="text-amber-glow font-bold font-mono">{result.subtitle_count}</span> câu
+                                    <span className="font-mono font-bold text-amber-glow">{result.subtitle_count}</span> câu
                                 </span>
                                 <div className="flex-1" />
                                 <button
+                                    type="button"
                                     onClick={() => { setResult(null); setStage('idle') }}
-                                    className="text-[11px] text-ghost active:text-amber-glow flex items-center
-                             gap-1 px-2.5 py-1.5 glass rounded-lg border border-gray-100">
+                                    className="flex items-center gap-1 rounded-lg border border-gray-100 px-2.5 py-1.5
+                                               text-[11px] text-ghost active:text-amber-glow glass"
+                                >
                                     + Video khác
                                 </button>
-                                <Link href="/history"
-                                    className="text-[11px] text-ghost active:text-jade flex items-center
-                             gap-1 px-2.5 py-1.5 glass rounded-lg border border-gray-100">
+                                <Link
+                                    href="/history"
+                                    className="flex items-center gap-1 rounded-lg border border-gray-100 px-2.5 py-1.5
+                                               text-[11px] text-ghost active:text-jade glass"
+                                >
                                     Lịch sử
                                 </Link>
                             </div>
 
-                            {/* Controls desktop */}
-                            <div className="hidden lg:flex flex-col gap-2 px-4 py-3 flex-shrink-0">
+                            <div className="hidden flex-shrink-0 flex-col gap-2 px-4 py-3 xl:flex">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2 text-jade text-xs">
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
@@ -381,7 +379,7 @@ export default function HomePage() {
                                             <polyline points="20 6 9 17 4 12" />
                                         </svg>
                                         Đã lưu
-                                        <span className="text-amber-glow font-bold font-mono">{result.subtitle_count}</span> câu
+                                        <span className="font-mono font-bold text-amber-glow">{result.subtitle_count}</span> câu
                                     </div>
                                     <Link href="/history" className="text-xs text-jade underline hover:no-underline">
                                         Lịch sử
@@ -391,12 +389,11 @@ export default function HomePage() {
                             </div>
                         </div>
 
-                        {/* ── RIGHT: SUBTITLE PANEL ── */}
-                        {/* Mobile: panel nằm dưới video và có thể cuộn độc lập */}
-                        {/* Desktop: panel chiếm phần bên phải, giữ layout song song */}
+                        {/* Phụ đề — dưới cùng trên mobile, cột phải trên desktop */}
                         <div
                             ref={subtitleRef}
-                            className="flex-1 min-h-0 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
+                            className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain bg-sub-panel
+                                       [-webkit-overflow-scrolling:touch]"
                         >
                             <SubtitlePanel
                                 subtitles={subtitles}
@@ -407,7 +404,6 @@ export default function HomePage() {
                                 )}
                             />
                         </div>
-
                     </div>
                 </div>
             )}

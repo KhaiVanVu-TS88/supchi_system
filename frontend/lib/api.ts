@@ -1,8 +1,19 @@
 /**
  * lib/api.ts v3.2 — HTTP client + Dictionary API (multi-meaning)
+ *
+ * Trình duyệt: base '' → fetch('/api/...') cùng origin; next.config rewrites → backend.
+ * Tránh ERR_CONNECTION_REFUSED khi client không mở được cổng 8000 (chỉ cần :3000).
+ * SSR / Node: BACKEND_URL (Docker: http://backend:8000).
  */
-
-const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8000'
+export function getPublicApiBase(): string {
+  if (typeof window !== 'undefined') return ''
+  return (
+    process.env.BACKEND_URL ||
+    process.env.BACKEND_INTERNAL_URL ||
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+    'http://localhost:8000'
+  )
+}
 
 export function getToken(): string | null {
   if (typeof window === 'undefined') return null
@@ -24,7 +35,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     ...(options.headers as Record<string, string>),
   }
   if (token) headers['Authorization'] = `Bearer ${token}`
-  const res = await fetch(`${BASE_URL}${path}`, { ...options, headers })
+  const res = await fetch(`${getPublicApiBase()}${path}`, { ...options, headers })
   if (res.status === 401 && typeof window !== 'undefined') {
     clearTokens(); window.location.href = '/auth/login'
     throw new Error('Phiên đăng nhập hết hạn.')
@@ -35,8 +46,19 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     try {
       const ct = res.headers.get('content-type') ?? ''
       if (ct.includes('json')) {
-        const err = await res.json()
-        errMsg = err.detail ?? errMsg
+        const err = (await res.json()) as { detail?: unknown }
+        const d = err.detail
+        if (typeof d === 'string') {
+          errMsg = d
+        } else if (Array.isArray(d)) {
+          // FastAPI / Pydantic 422: [{ loc, msg, type }, ...]
+          errMsg = d
+            .map((item: { msg?: string; message?: string }) => item.msg ?? item.message ?? JSON.stringify(item))
+            .filter(Boolean)
+            .join(' ')
+        } else if (d != null) {
+          errMsg = String(d)
+        }
       }
     } catch {
       // không parse được → dùng generic message
@@ -79,49 +101,7 @@ export const jobsApi = {
 export const dictionaryApi = {
   lookup: (word: string) => request<DictionaryEntry>(`/api/dictionary?word=${encodeURIComponent(word)}`),
   segment: (text: string) => request<{ text: string; words: string[] }>(`/api/dictionary/segment?text=${encodeURIComponent(text)}`),
-  audioUrl: (filename: string) => `${BASE_URL}/api/audio/${filename}`,
-}
-
-export const pronunciationApi = {
-  check: async (payload: {
-    userAudio: File
-    videoId?: number
-    sentenceId?: number
-    referenceText?: string
-    referencePinyin?: string
-    referenceAudio?: File
-  }): Promise<PronunciationCheckResponse> => {
-    const token = getToken()
-    const formData = new FormData()
-
-    formData.append('user_audio', payload.userAudio)
-    if (payload.videoId !== undefined) formData.append('video_id', String(payload.videoId))
-    if (payload.sentenceId !== undefined) formData.append('sentence_id', String(payload.sentenceId))
-    if (payload.referenceText) formData.append('reference_text', payload.referenceText)
-    if (payload.referencePinyin) formData.append('reference_pinyin', payload.referencePinyin)
-    if (payload.referenceAudio) formData.append('reference_audio', payload.referenceAudio)
-
-    const headers: Record<string, string> = {}
-    if (token) headers['Authorization'] = `Bearer ${token}`
-
-    const res = await fetch(`${BASE_URL}/api/pronunciation/check`, {
-      method: 'POST',
-      headers,
-      body: formData,
-    })
-
-    if (res.status === 401 && typeof window !== 'undefined') {
-      clearTokens(); window.location.href = '/auth/login'
-      throw new Error('Phiên đăng nhập hết hạn.')
-    }
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      throw new Error(err.detail ?? `Lỗi ${res.status}`)
-    }
-
-    return res.json()
-  }
+  audioUrl: (filename: string) => `${getPublicApiBase()}/api/audio/${filename}`,
 }
 
 // ── Types ──
@@ -167,37 +147,4 @@ export interface DictionaryEntry {
   example: { zh: string; vi: string }
   audio_url: string
   definitions_en: string[]
-}
-
-export interface SyllableScore {
-  character: string
-  pinyin: string
-  expected_tone: number
-  user_tone: number
-  tone_score: number
-  initial_score: number
-  final_score: number
-  overall_score: number
-  errors: string[]
-  start_time: number
-  end_time: number
-}
-
-export interface Recommendation {
-  type: string
-  focus: string
-  message: string
-  examples?: string
-}
-
-export interface PronunciationCheckResponse {
-  overall_score: number
-  syllable_results: SyllableScore[]
-  summary: string
-  recommendations: Recommendation[]
-  recognized_text?: string | null
-  text_similarity_score: number
-  tone_score: number
-  acoustic_score: number
-  duration_seconds: number
 }

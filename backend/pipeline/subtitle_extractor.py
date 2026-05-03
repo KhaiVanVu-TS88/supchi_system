@@ -16,7 +16,8 @@ import logging
 import os
 import re
 from typing import Optional, Tuple
-import yt_dlp
+
+from pipeline.ytdlp_common import extract_info_with_youtube_fallbacks
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +39,7 @@ def check_youtube_captions(url: str) -> CaptionResult:
     """
     logger.info(f"Checking YouTube captions for: {url}")
 
-    ydl_opts = {
+    base_opts = {
         "quiet": True,
         "no_warnings": True,
         "skip_download": True,
@@ -47,8 +48,7 @@ def check_youtube_captions(url: str) -> CaptionResult:
     }
 
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
+        info = extract_info_with_youtube_fallbacks(url, base_opts, download=False)
 
         manual_subs  = info.get("subtitles", {})
         auto_subs    = info.get("automatic_captions", {})
@@ -107,7 +107,7 @@ def _download_and_parse_captions(url: str, lang: str, is_auto: bool) -> Optional
     import tempfile, os, json
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        ydl_opts = {
+        base_opts = {
             "quiet": True,
             "no_warnings": True,
             "skip_download": True,
@@ -119,9 +119,8 @@ def _download_and_parse_captions(url: str, lang: str, is_auto: bool) -> Optional
         }
 
         try:
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(url, download=True)
-                video_id = info.get("id", "video")
+            info = extract_info_with_youtube_fallbacks(url, base_opts, download=True)
+            video_id = info.get("id", "video")
 
             # Tìm file subtitle đã tải
             sub_file = None
@@ -224,34 +223,16 @@ def peek_video_duration_and_subtitle_route(url: str) -> Tuple[Optional[float], s
     Returns:
         (duration_seconds hoặc None nếu không biết, "manual" | "whisper")
     """
-    proxy = (
-        os.getenv("HTTPS_PROXY")
-        or os.getenv("HTTP_PROXY")
-        or os.getenv("https_proxy")
-        or os.getenv("http_proxy")
-    )
-    ydl_opts = {
+    base_opts = {
         "quiet": True,
         "no_warnings": True,
         "skip_download": True,
         "writesubtitles": False,
         "writeautomaticsub": False,
-        "http_headers": {
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/120.0.0.0 Safari/537.36"
-            ),
-            "Accept-Language": "en-US,en;q=0.9",
-        },
-        "extractor_args": {"youtube": {"player_client": ["android", "web"]}},
     }
-    if proxy:
-        ydl_opts["proxy"] = proxy
 
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
+        info = extract_info_with_youtube_fallbacks(url, base_opts, download=False)
     except Exception as e:
         logger.warning(f"peek_video_duration_and_subtitle_route failed: {e}")
         return None, "whisper"

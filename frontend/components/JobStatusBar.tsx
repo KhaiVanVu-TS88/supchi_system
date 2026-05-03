@@ -107,7 +107,7 @@ export default function JobStatusBar({ jobId, onDone, onFailed }: Props) {
             width: `${progress}%`,
             background: job.status === 'failed'
               ? '#EF4444'
-              : 'linear-gradient(90deg, #4CAF88, #6FD3A5, #A7E9C5)',
+              : 'linear-gradient(90deg, #7FBF6A, #A6D97A, #C8EBA8)',
           }}
         />
       </div>

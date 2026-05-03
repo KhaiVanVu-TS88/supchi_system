@@ -20,7 +20,8 @@ redis==5.0.4
 kombu==5.3.4
 
 # --- AI Pipeline ---
-yt-dlp==2024.5.27
+# [default] = yt-dlp-ejs (challenge solver) — cần kèm Deno trong Docker (xem Dockerfile)
+yt-dlp[default]==2026.3.17
 faster-whisper==1.0.3
 ffmpeg-python==0.2.0
 numpy==1.26.4
@@ -33,10 +34,6 @@ requests>=2.28.0
 jieba==0.42.1
 edge-tts>=6.1.18          # Luôn dùng version mới nhất để tránh token expired
 gTTS==2.5.1               # Fallback TTS khi edge-tts bị block
-
-# --- OCR ------
-easyocr==1.7.1
-Pillow>=10.0.0
 
 # --- Monitoring ------
 psutil>=5.9.0

@@ -8,7 +8,6 @@ Sử dụng sliding window algorithm:
 
 Giới hạn mặc định:
   - Video: 5 requests / phút / user
-  - OCR:   10 requests / phút / user
   - Dict:  30 requests / phút / user
 """
 import time
@@ -35,8 +34,6 @@ logger = logging.getLogger(__name__)
 class RateLimitConfig:
     # (max_requests, window_seconds)
     VIDEO    = (5,  60)   # 5 video/phút/user
-    OCR      = (10, 60)   # 10 OCR/phút/user
-    HANDWRITING = (15, 60) # 15 handwriting/phút/user
     DICT     = (30, 60)   # 30 tra từ/phút/user
     AUTH     = (10, 60)   # 10 login/phút/IP
 

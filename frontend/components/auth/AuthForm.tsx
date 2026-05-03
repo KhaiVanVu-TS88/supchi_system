@@ -18,7 +18,7 @@ const LOGIN_FIELDS: Field[] = [
   { name: 'password', label: 'Mật khẩu', type: 'password', placeholder: '••••••••' },
 ]
 const REGISTER_FIELDS: Field[] = [
-  { name: 'username', label: 'Tên đăng nhập', type: 'text', placeholder: 'nguyenvana' },
+  { name: 'username', label: 'Tên đăng nhập', type: 'text', placeholder: 'nguyen.van hoặc nguyen_van (a-z, 0-9, . _ -)' },
   { name: 'email', label: 'Email', type: 'email', placeholder: 'you@example.com' },
   { name: 'password', label: 'Mật khẩu', type: 'password', placeholder: 'Ít nhất 6 ký tự' },
 ]

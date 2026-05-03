@@ -6,6 +6,7 @@ POST /api/auth/login     — Đăng nhập, nhận JWT tokens
 POST /api/auth/refresh   — Lấy access token mới từ refresh token
 GET  /api/auth/me        — Lấy thông tin user hiện tại
 """
+import re
 from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -31,20 +32,20 @@ class RegisterRequest(BaseModel):
     @classmethod
     def username_valid(cls, v):
         v = v.strip()
-        if len(v) < 3:
-            raise ValueError("Username phải có ít nhất 3 ký tự.")
-        if len(v) > 50:
-            raise ValueError("Username không được quá 50 ký tự.")
-        if not v.replace("_", "").replace("-", "").isalnum():
-            raise ValueError("Username chỉ được chứa chữ, số, _ và -.")
+        # Cho phép . _ - (trước đây isalnum() từ chối dạng nguyen.van → 422)
+        if not re.fullmatch(r"[A-Za-z0-9._-]{3,50}", v):
+            raise ValueError(
+                "Username 3–50 ký tự, chỉ dùng chữ không dấu (a-z, A-Z), số, dấu chấm (.), gạch dưới (_) và gạch ngang (-)."
+            )
         return v
 
     @field_validator("email")
     @classmethod
     def email_valid(cls, v):
-        if '@' not in v or '.' not in v:
-            raise ValueError("Email không hợp lệ.")
-        return v.strip().lower()
+        v = v.strip().lower()
+        if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", v):
+            raise ValueError("Email không hợp lệ (cần dạng ten@domain.tld).")
+        return v
 
     @field_validator("password")
     @classmethod

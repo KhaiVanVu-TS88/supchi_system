@@ -28,8 +28,7 @@ const segmentCache = new Map<string, string[]>()
 async function segmentChinese(text: string): Promise<string[]> {
     if (segmentCache.has(text)) return segmentCache.get(text)!
     try {
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8000'
-        const res = await fetch(`${backendUrl}/api/dictionary/segment?text=${encodeURIComponent(text)}`)
+        const res = await fetch(`/api/dictionary/segment?text=${encodeURIComponent(text)}`)
         if (res.ok) {
             const data = await res.json()
             segmentCache.set(text, data.words)
@@ -65,11 +64,11 @@ export default function SubtitleItem({ subtitle, isActive, onClick }: Props) {
     return (
         <>
             <div ref={ref} onClick={onClick} className={clsx('sub-card animate-slide-up', isActive && 'sub-card-active')}>
-                {isActive && <span className="absolute right-3 top-3 w-1.5 h-1.5 rounded-full bg-amber-glow animate-pulse" />}
-                <p className="text-[10px] font-mono text-ghost mb-2">{formatTime(subtitle.start)}</p>
+                {isActive && <span className="absolute right-3 top-3 w-1.5 h-1.5 rounded-full bg-sub-accent animate-pulse" />}
+                <p className="text-[10px] font-mono text-sub-time mb-2 tabular-nums">{formatTime(subtitle.start)}</p>
 
                 {/* Chinese — segmented clickable words */}
-                <div className="font-serif text-xl text-snow mb-1 leading-relaxed flex flex-wrap gap-x-0.5">
+                <div className="font-serif text-xl text-sub-ink mb-1 leading-relaxed flex flex-wrap gap-x-0.5">
                     {segmented ? segmented.map((word, i) => (
                         <span
                             key={i}
@@ -77,15 +76,15 @@ export default function SubtitleItem({ subtitle, isActive, onClick }: Props) {
                             className={clsx(
                                 'transition-colors rounded px-0.5',
                                 /[\u4e00-\u9fff]/.test(word)
-                                    ? 'cursor-pointer hover:bg-amber-glow/20 hover:text-amber-glow'
+                                    ? 'cursor-pointer hover:bg-sub-accent/12 hover:text-sub-accent'
                                     : 'cursor-default'
                             )}
                         >{word}</span>
                     )) : subtitle.chinese}
                 </div>
 
-                <p className="text-xs font-mono text-amber-glow/80 mb-1.5 leading-relaxed">{subtitle.pinyin}</p>
-                <p className="text-sm text-mist leading-relaxed">{subtitle.vietnamese}</p>
+                <p className="text-sm font-medium text-sub-pinyin mb-1.5 leading-relaxed tracking-wide">{subtitle.pinyin}</p>
+                <p className="text-sm text-sub-muted leading-relaxed">{subtitle.vietnamese}</p>
             </div>
 
             {popup && (

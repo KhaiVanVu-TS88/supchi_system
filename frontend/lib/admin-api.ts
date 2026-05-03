@@ -1,4 +1,4 @@
-const BASE = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8000'
+import { getPublicApiBase } from './api'
 
 function getToken() {
     if (typeof window === 'undefined') return null
@@ -7,7 +7,7 @@ function getToken() {
 
 async function adminRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
     const token = getToken()
-    const res = await fetch(`${BASE}${path}`, {
+    const res = await fetch(`${getPublicApiBase()}${path}`, {
         ...options,
         headers: {
             'Content-Type': 'application/json',

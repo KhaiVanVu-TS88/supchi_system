@@ -270,14 +270,14 @@ import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useAuth } from '../../lib/auth-context'
+import { DesktopMainNavTabs, MAIN_NAV, NavGlyph } from './mainNavTabs'
 
-export const NAV_LINKS = [
-  { href: '/', label: 'Video', icon: '🎬', match: (p: string) => p === '/' },
-  { href: '/dictionary', label: 'Từ điển', icon: '📖', match: (p: string) => p.startsWith('/dictionary') },
-  // { href: '/pronunciation', label: 'Phát âm', icon: '🎤', match: (p: string) => p.startsWith('/pronunciation') },
-  // { href: '/ocr', label: 'OCR', icon: '🔍', match: (p: string) => p.startsWith('/ocr') },
-  { href: '/history', label: 'Lịch sử', icon: '🕐', match: (p: string) => p.startsWith('/history') },
-]
+/** @deprecated Dùng MAIN_NAV từ mainNavTabs — giữ export để tương thích */
+export const NAV_LINKS = MAIN_NAV.map(({ href, label, match }) => ({
+  href,
+  label,
+  match,
+}))
 
 export default function Navbar() {
   const { user, logout } = useAuth()
@@ -313,7 +313,7 @@ export default function Navbar() {
   return (
     <>
       <header className="flex-shrink-0 sticky top-0 z-40
-                         bg-white/85 backdrop-blur-xl border-b border-gray-100 shadow-edu">
+                         bg-ink-900/92 backdrop-blur-xl border-b border-gray-200 shadow-edu">
         <div className="pt-safe" />
 
         <div className="h-14 px-3 sm:px-5 flex items-center justify-between gap-3
@@ -335,25 +335,7 @@ export default function Navbar() {
             </div>
           </Link>
 
-          {/* ── Nav tabs — desktop only (md+) ── */}
-          <nav className="hidden md:flex items-center gap-0.5 flex-1 justify-center"
-            aria-label="Điều hướng chính">
-            {NAV_LINKS.map(link => {
-              const active = link.match(router.pathname)
-              return (
-                <Link key={link.href} href={link.href}
-                  className={`flex items-center gap-1.5 text-[13px] font-medium px-3 py-2
-                              rounded-lg transition-colors whitespace-nowrap min-h-[40px] ${active
-                      ? 'bg-amber-glow/15 text-amber-glow'
-                      : 'text-ghost hover:text-snow hover:bg-gray-100'
-                    }`}
-                  aria-current={active ? 'page' : undefined}>
-                  <span aria-hidden>{link.icon}</span>
-                  {link.label}
-                </Link>
-              )
-            })}
-          </nav>
+          <DesktopMainNavTabs />
 
           {/* ── Right area ── */}
           <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -456,20 +438,28 @@ export default function Navbar() {
                   )}
 
                   {/* Nav links */}
-                  <div className="py-1">
-                    {NAV_LINKS.map(link => {
+                  <div className="py-1.5 px-1">
+                    {MAIN_NAV.map((link) => {
                       const active = link.match(router.pathname)
                       return (
-                        <Link key={link.href} href={link.href}
-                          className={`flex items-center gap-3 px-4 py-3.5 text-sm
-                                      transition-colors min-h-[52px] ${active
-                              ? 'bg-amber-glow/10 text-amber-glow'
-                              : 'text-mist active:bg-gray-100'
-                            }`}>
-                          <span className="text-lg w-6 text-center" aria-hidden>{link.icon}</span>
-                          <span className="font-medium">{link.label}</span>
+                        <Link
+                          key={link.href}
+                          href={link.href}
+                          className={`flex items-center gap-3 px-3 py-3.5 text-sm font-medium rounded-xl min-h-[48px] transition-colors
+                            ${active
+                              ? 'bg-navtab-activeBg text-navtab-activeText'
+                              : 'text-navtab-text active:bg-black/[0.04]'
+                            }`}
+                        >
+                          <span
+                            className={`flex w-6 flex-shrink-0 items-center justify-center ${active ? 'text-navtab-activeIcon' : 'text-navtab-icon'}`}
+                            aria-hidden
+                          >
+                            <NavGlyph id={link.icon} className="h-5 w-5" />
+                          </span>
+                          <span className="flex-1">{link.label}</span>
                           {active && (
-                            <span className="ml-auto w-1.5 h-1.5 rounded-full bg-amber-glow" aria-hidden />
+                            <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-navtab-activeIcon" aria-hidden />
                           )}
                         </Link>
                       )

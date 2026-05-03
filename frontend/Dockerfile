@@ -36,6 +36,12 @@ FROM node:20-bookworm-slim AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# rewrites() trong next.config.js đọc BACKEND_URL lúc build — phải trỏ tới service Docker (không phải localhost của máy host)
+ARG BACKEND_URL=http://backend:8000
+ENV BACKEND_URL=$BACKEND_URL
+# Giữ cho SSR / công cụ cũ; trình duyệt dùng same-origin /api (xem lib/api.ts getPublicApiBase)
+ARG NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
+ENV NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 # Cap heap + fewer parallel workers → lower peak RAM inside Docker (raise Docker Desktop memory if build still fails)

@@ -30,7 +30,6 @@ export default function WordPopup({ word, onClose, anchorRect }: Props) {
     const popupRef = useRef<HTMLDivElement>(null)
     const audioRef = useRef<HTMLAudioElement | null>(null)
     const isMobile = useIsMobile()
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8000'
 
     // Tính vị trí popup cho desktop
     const desktopStyle = (): React.CSSProperties => {
@@ -67,7 +66,7 @@ export default function WordPopup({ word, onClose, anchorRect }: Props) {
 
     const playAudio = () => {
         if (!entry) return
-        const url = entry.audio_url.startsWith('http') ? entry.audio_url : `${backendUrl}${entry.audio_url}`
+        const url = entry.audio_url
         if (!audioRef.current) audioRef.current = new Audio(url)
         audioRef.current.currentTime = 0
         audioRef.current.play().catch(() => { })

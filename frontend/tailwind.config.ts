@@ -1,7 +1,9 @@
 /** @type {import('tailwindcss').Config} */
+const defaultTheme = require('tailwindcss/defaultTheme')
+
 /**
- * Educational light UI — Notion × Duolingo × Anki
- * BG #FFFFFF / #F7F9FC · Surface #FDFEFE · Brand #4CAF88
+ * Soft modern UI — warm beige surfaces, fresh green brand, soft contrast.
+ * Page #F4F3EF · Card #FAFAF7 · Primary #A6D97A · Accent #7FBF6A · Emphasis #2F6B2F
  */
 module.exports = {
   content: [
@@ -16,48 +18,81 @@ module.exports = {
         mono: ['"DM Mono"', 'monospace'],
       },
       colors: {
-        ink: {
-          950: '#F7F9FC',
-          900: '#FFFFFF',
-          800: '#F7F9FC',
-          700: '#FDFEFE',
-          600: '#E8F6EF',
-          500: '#D1FAE5',
+        /** Warm neutrals (merge with default gray for hovers / borders) */
+        gray: {
+          ...defaultTheme.colors.gray,
+          50: '#F9F8F5',
+          100: '#EEEDE8',
+          200: '#DCDCDC',
         },
-        /** Interactive accent slot — soft green brand */
+        ink: {
+          950: '#EEEDE8',
+          900: '#FAFAF7',
+          800: '#F4F3EF',
+          700: '#FAFAF7',
+          600: '#E8F0E0',
+          500: '#DCEBCF',
+        },
+        /** Legacy slot name — maps to brand greens */
         amber: {
-          glow: '#4CAF88',
-          soft: '#6FD3A5',
-          dim: 'rgba(76, 175, 136, 0.18)',
+          glow: '#A6D97A',
+          soft: '#7FBF6A',
+          dim: 'rgba(166, 217, 122, 0.22)',
         },
         jade: {
-          DEFAULT: '#E8F6EF',
-          dim: 'rgba(209, 250, 229, 0.65)',
+          DEFAULT: '#E8F0E0',
+          dim: 'rgba(166, 217, 122, 0.35)',
         },
-        snow: '#1F2937',
-        mist: '#6B7280',
-        ghost: '#9CA3AF',
+        snow: '#333333',
+        mist: '#666666',
+        ghost: '#8C8C8C',
         brand: {
-          DEFAULT: '#4CAF88',
-          hover: '#6FD3A5',
-          highlight: '#E8F6EF',
-          active: '#D1FAE5',
+          DEFAULT: '#A6D97A',
+          hover: '#7FBF6A',
+          highlight: '#EDF5E6',
+          active: '#DCEBCF',
         },
         edu: {
-          warn: '#FFB020',
-          error: '#EF4444',
-          info: '#3B82F6',
+          warn: '#E8A838',
+          error: '#D95C5C',
+          info: '#5B8FC7',
+        },
+        /**
+         * AI subtitle panel — beige canvas, card surfaces, green accent, clear type scale.
+         */
+        sub: {
+          panel: '#F4F3EF',
+          card: '#FAFAF7',
+          active: '#EAF6E3',
+          accent: '#7FBF6A',
+          ink: '#222222',
+          muted: '#666666',
+          time: '#999999',
+          pinyin: '#6FAF6A',
+          line: '#E6E4DF',
+        },
+        /** Main app tab bar — beige rail, green active state, monochrome stroke icons */
+        navtab: {
+          bar: '#F4F3EF',
+          text: '#777777',
+          icon: '#888888',
+          activeBg: '#EAF6E3',
+          activeText: '#2F6B2F',
+          activeIcon: '#5FAE55',
         },
       },
       boxShadow: {
-        edu: '0 1px 2px rgba(31, 41, 55, 0.04), 0 2px 8px rgba(31, 41, 55, 0.06)',
+        edu: '0 1px 2px rgba(0, 0, 0, 0.05), 0 4px 14px rgba(0, 0, 0, 0.05)',
         'edu-md':
-          '0 4px 6px -1px rgba(31, 41, 55, 0.06), 0 8px 20px -4px rgba(31, 41, 55, 0.07)',
+          '0 2px 6px rgba(0, 0, 0, 0.05), 0 8px 20px rgba(0, 0, 0, 0.06)',
         'edu-lg':
-          '0 12px 28px -6px rgba(31, 41, 55, 0.1), 0 4px 12px -2px rgba(31, 41, 55, 0.05)',
+          '0 4px 12px rgba(0, 0, 0, 0.05), 0 16px 40px rgba(0, 0, 0, 0.06)',
+        'sub-card': '0 1px 2px rgba(0, 0, 0, 0.04)',
+        'sub-active':
+          '0 2px 14px rgba(127, 191, 106, 0.12), 0 0 0 1px rgba(127, 191, 106, 0.18)',
       },
       borderRadius: {
-        edu: '14px',
+        edu: '16px',
       },
       height: {
         dvh: '100dvh',
@@ -78,8 +113,8 @@ module.exports = {
           '100%': { opacity: '1' },
         },
         'pulse-amber': {
-          '0%, 100%': { boxShadow: '0 0 0 0 rgba(76, 175, 136, 0.45)' },
-          '50%': { boxShadow: '0 0 0 7px rgba(76, 175, 136, 0)' },
+          '0%, 100%': { boxShadow: '0 0 0 0 rgba(166, 217, 122, 0.5)' },
+          '50%': { boxShadow: '0 0 0 8px rgba(166, 217, 122, 0)' },
         },
         shimmer: {
           '0%': { backgroundPosition: '-200% 0' },
@@ -99,9 +134,9 @@ module.exports = {
       },
       backgroundImage: {
         'ink-radial':
-          'radial-gradient(ellipse 120% 90% at 50% -25%, rgba(232, 246, 239, 0.85) 0%, rgba(247, 249, 252, 0.5) 42%, #FFFFFF 72%, #FFFFFF 100%)',
+          'radial-gradient(ellipse 120% 95% at 50% -20%, rgba(166, 217, 122, 0.18) 0%, rgba(244, 243, 239, 0.9) 45%, #F4F3EF 70%, #F4F3EF 100%)',
         'shimmer-gradient':
-          'linear-gradient(90deg, rgba(243, 244, 246, 0.8) 0%, rgba(232, 246, 239, 0.9) 50%, rgba(243, 244, 246, 0.8) 100%)',
+          'linear-gradient(90deg, rgba(238, 237, 232, 0.95) 0%, rgba(232, 240, 224, 0.85) 50%, rgba(238, 237, 232, 0.95) 100%)',
       },
     },
   },

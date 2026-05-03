@@ -63,36 +63,55 @@ export default function VideoDetailPage() {
         )}
 
         {video && (
-          <div className="flex-1 flex overflow-hidden" style={{ height: 'calc(100vh - 57px)' }}>
-            {/* Left: Video player */}
-            <div className="w-[52%] flex-shrink-0 flex flex-col overflow-hidden border-r border-gray-100 px-6 pt-6 pb-4">
-              <p className="text-xs text-ghost mb-3 truncate">
-                <span className="text-amber-glow mr-2">←</span>
-                <button onClick={() => router.push('/history')} className="hover:text-snow transition-colors">
+          /*
+           * Dưới 1280px: cột dọc (video trên, phụ đề dưới) — .app-split-video-sub trong globals.css.
+           * Từ 1280px (xl): hai cột — video ~52%.
+           */
+          <div
+            className="app-split-video-sub flex min-h-0 flex-1 flex-col overflow-hidden xl:flex-row"
+            style={{ height: 'calc(100dvh - 3.5rem)' }}
+          >
+            {/* Video + meta — w-full + xl:w-[52%] song song globals để luôn đúng trên mobile */}
+            <div
+              className="flex w-full max-w-full shrink-0 flex-col overflow-hidden border-b border-gray-200 bg-ink-800
+                         px-3 pb-3 pt-3 sm:px-6 sm:pb-4 sm:pt-5 xl:w-[52%] xl:max-w-[52%] xl:border-b-0 xl:border-r xl:border-gray-200"
+            >
+              <p className="mb-2 truncate text-xs text-ghost sm:mb-3">
+                <span className="mr-2 text-amber-glow">←</span>
+                <button
+                  type="button"
+                  onClick={() => router.push('/history')}
+                  className="transition-colors hover:text-snow"
+                >
                   Lịch sử
                 </button>
                 <span className="mx-2 opacity-40">/</span>
                 {video.title}
               </p>
-              <VideoPlayer videoId={video.video_id} onTimeUpdate={setCurrentTime} />
-              <div className="mt-4 grid grid-cols-2 gap-3">
+              <VideoPlayer videoId={video.video_id} onTimeUpdate={setCurrentTime} compact />
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-4 sm:gap-3">
                 <div className="glass rounded-xl px-3 py-2.5 text-center">
-                  <p className="text-base font-bold text-amber-glow font-mono">{video.subtitle_count}</p>
-                  <p className="text-[10px] text-ghost mt-0.5">Câu thoại</p>
+                  <p className="font-mono text-base font-bold text-amber-glow">{video.subtitle_count}</p>
+                  <p className="mt-0.5 text-[10px] text-ghost">Câu thoại</p>
                 </div>
                 <div className="glass rounded-xl px-3 py-2.5 text-center">
-                  <p className="text-base font-bold text-amber-glow font-mono text-xs">{video.video_id}</p>
-                  <p className="text-[10px] text-ghost mt-0.5">Video ID</p>
+                  <p className="font-mono text-xs font-bold text-amber-glow">{video.video_id}</p>
+                  <p className="mt-0.5 text-[10px] text-ghost">Video ID</p>
                 </div>
               </div>
             </div>
 
-            {/* Right: Subtitle panel */}
-            <div className="flex-1 overflow-hidden px-5 pt-6 pb-0">
+            {/* Phụ đề — flex-1 chiếm phần còn lại dưới video (mobile) hoặc cột phải (desktop) */}
+            <div
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-sub-panel [-webkit-overflow-scrolling:touch]
+                         px-3 pb-2 pt-2 sm:px-5 sm:pb-3 sm:pt-4 xl:px-5 xl:pb-0 xl:pt-6"
+            >
               <SubtitlePanel
                 subtitles={subtitles}
                 currentTime={currentTime}
-                onSeek={t => window.dispatchEvent(new CustomEvent('seek-video', { detail: { time: t } }))}
+                onSeek={t =>
+                  window.dispatchEvent(new CustomEvent('seek-video', { detail: { time: t } }))
+                }
               />
             </div>
           </div>

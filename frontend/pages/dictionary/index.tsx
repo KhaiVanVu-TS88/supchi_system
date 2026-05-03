@@ -5,12 +5,12 @@ import React, { useState, useEffect, useCallback } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import Navbar from '../../components/layout/Navbar'
+import { MobileBottomTabBar } from '../../components/layout/mainNavTabs'
 import DictionaryCard from '../../components/dictionary/DictionaryCard'
 import { dictionaryApi, type DictionaryEntry } from '../../lib/api'
 
 const RECENT_KEY = 'dict_recent'
 const MAX_RECENT = 10
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8000'
 const SAMPLE_WORDS = ['你好', '谢谢', '学习', '意思', '打', '朋友', '工作', '今天', '喜欢', '中文']
 
 function getRecent(): string[] {
@@ -171,8 +171,9 @@ export default function DictionaryPage() {
                         </div>
                     )}
 
-                    {entry && !loading && <DictionaryCard entry={entry} backendUrl={BACKEND_URL} />}
+                    {entry && !loading && <DictionaryCard entry={entry} />}
                 </main>
+                <MobileBottomTabBar />
             </div>
         </>
     )

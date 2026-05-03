@@ -70,7 +70,6 @@ class HealthCheck(BaseModel):
     redis: str
     celery: str
     whisper_model: str
-    easyocr_model: str
     disk_usage_percent: float
     memory_usage_percent: float
 
@@ -201,14 +200,6 @@ def detailed_health_check():
     except Exception:
         whisper_ready = "not loaded"
 
-    easyocr_ready = "loaded"
-    try:
-        from services.ocr_service import _reader
-        if _reader is None:
-            easyocr_ready = "not loaded"
-    except Exception:
-        easyocr_ready = "not loaded"
-
     # ── System resources ──
     disk_usage = psutil.disk_usage("/").percent
     memory_usage = psutil.virtual_memory().percent
@@ -226,7 +217,6 @@ def detailed_health_check():
         redis=checks["redis"],
         celery=checks["celery"],
         whisper_model=whisper_ready,
-        easyocr_model=easyocr_ready,
         disk_usage_percent=round(disk_usage, 1),
         memory_usage_percent=round(memory_usage, 1),
     )
@@ -248,7 +238,7 @@ def get_queue_status(
         import redis
         r = redis.from_url("redis://redis:6379/0", decode_responses=True)
 
-        queues = ["video_queue", "ocr_queue", "celery"]
+        queues = ["video_queue", "celery"]
         result = []
 
         for q in queues:

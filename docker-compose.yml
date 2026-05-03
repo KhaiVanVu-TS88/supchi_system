@@ -42,7 +42,7 @@ services:
       - DATABASE_URL=sqlite:////data/supchi4.db
       - REDIS_URL=redis://redis:6379/0
       - REDIS_CACHE_URL=redis://redis:6379/1
-      - FRONTEND_URL=http://localhost:3000
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
       - VIDEO_DURATION_WARNING_MINUTES=${VIDEO_DURATION_WARNING_MINUTES:-20}
       - HF_ENDPOINT=https://hf-mirror.com
       - DEBUG=false
@@ -52,11 +52,26 @@ services:
       - https_proxy=http://172.25.80.1:7897
       - NO_PROXY=localhost,127.0.0.1,backend,worker,redis
       - no_proxy=localhost,127.0.0.1,backend,worker,redis
-      - EASYOCR_MODULE_PATH=/easyocr_models
+      # Cookie Netscape cho yt-dlp khi YouTube báo "Sign in to confirm you're not a bot" (xem README)
+      - YTDLP_COOKIES_FILE=${YTDLP_COOKIES_FILE:-}
+      # Thử 1 khi vẫn lỗi bot dù có cookie: bỏ proxy chỉ cho yt-dlp (proxy Clash thường bị YouTube chặn)
+      - YTDLP_DISABLE_PROXY=${YTDLP_DISABLE_PROXY:-}
+      - YTDLP_YOUTUBE_PO_TOKEN=${YTDLP_YOUTUBE_PO_TOKEN:-}
+      - YTDLP_YOUTUBE_PO_CLIENT=${YTDLP_YOUTUBE_PO_CLIENT:-}
+      - YTDLP_YOUTUBE_PLAYER_CLIENT=${YTDLP_YOUTUBE_PLAYER_CLIENT:-}
+      # Mạng kém / SSL EOF khi tải googlevideo (để trống = dùng mặc định trong code)
+      - YTDLP_RETRIES=${YTDLP_RETRIES:-}
+      - YTDLP_FRAGMENT_RETRIES=${YTDLP_FRAGMENT_RETRIES:-}
+      - YTDLP_SOCKET_TIMEOUT=${YTDLP_SOCKET_TIMEOUT:-}
+      - YTDLP_CONCURRENT_FRAGMENTS=${YTDLP_CONCURRENT_FRAGMENTS:-}
+      - YTDLP_SLEEP_INTERVAL_REQUESTS=${YTDLP_SLEEP_INTERVAL_REQUESTS:-}
+      - YTDLP_LEGACY_SERVER_CONNECT=${YTDLP_LEGACY_SERVER_CONNECT:-}
     volumes:
       - whisper_cache:/root/.cache/huggingface
       - sqlite_data:/data
-      - easyocr_cache:/easyocr_models
+      # Bỏ comment khi có file cookie (vd. export từ trình duyệt → secrets/youtube_cookies.txt):
+      # Không dùng :ro — yt-dlp có thể cập nhật cookie vào file (Errno 30 nếu chỉ đọc)
+      - ./secrets/youtube_cookies.txt:/secrets/youtube_cookies.txt
     depends_on:
       redis:
         condition: service_healthy
@@ -97,10 +112,22 @@ services:
       - https_proxy=http://172.25.80.1:7897
       - NO_PROXY=localhost,127.0.0.1,backend,worker,redis
       - no_proxy=localhost,127.0.0.1,backend,worker,redis
+      - YTDLP_COOKIES_FILE=${YTDLP_COOKIES_FILE:-}
+      - YTDLP_DISABLE_PROXY=${YTDLP_DISABLE_PROXY:-}
+      - YTDLP_YOUTUBE_PO_TOKEN=${YTDLP_YOUTUBE_PO_TOKEN:-}
+      - YTDLP_YOUTUBE_PO_CLIENT=${YTDLP_YOUTUBE_PO_CLIENT:-}
+      - YTDLP_YOUTUBE_PLAYER_CLIENT=${YTDLP_YOUTUBE_PLAYER_CLIENT:-}
+      - YTDLP_RETRIES=${YTDLP_RETRIES:-}
+      - YTDLP_FRAGMENT_RETRIES=${YTDLP_FRAGMENT_RETRIES:-}
+      - YTDLP_SOCKET_TIMEOUT=${YTDLP_SOCKET_TIMEOUT:-}
+      - YTDLP_CONCURRENT_FRAGMENTS=${YTDLP_CONCURRENT_FRAGMENTS:-}
+      - YTDLP_SLEEP_INTERVAL_REQUESTS=${YTDLP_SLEEP_INTERVAL_REQUESTS:-}
+      - YTDLP_LEGACY_SERVER_CONNECT=${YTDLP_LEGACY_SERVER_CONNECT:-}
     volumes:
       - whisper_cache:/root/.cache/huggingface
       - sqlite_data:/data
-      - easyocr_cache:/easyocr_models
+      # Không dùng :ro — yt-dlp có thể cập nhật cookie vào file (Errno 30 nếu chỉ đọc)
+      - ./secrets/youtube_cookies.txt:/secrets/youtube_cookies.txt
     depends_on:
       redis:
         condition: service_healthy
@@ -114,53 +141,6 @@ services:
         limits:    { memory: 4G }      # Whisper cần nhiều RAM
         reservations: { memory: 1G }
     # Chỉ nhận task từ video_queue
-
-  # ───────────────────────────────────────────
-  # WORKER OCR — Celery (Light tasks)
-  # ───────────────────────────────────────────
-  worker-ocr:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: supchi4-worker-ocr
-    command: >
-      bash -c "
-        sleep 10 &&
-        celery -A worker.celery_app worker
-        --loglevel=INFO
-        --concurrency=2
-        --max-tasks-per-child=10
-        --max-memory-per-child=1536000
-        -Q ocr_queue,celery
-        --hostname=ocr-worker@%h
-      "
-    environment:
-      - PYTHONUNBUFFERED=1
-      - SECRET_KEY=${SECRET_KEY:-supchi4-change-in-production}
-      - DATABASE_URL=sqlite:////data/supchi4.db
-      - REDIS_URL=redis://redis:6379/0
-      - HF_ENDPOINT=https://hf-mirror.com
-      - HTTP_PROXY=http://172.25.80.1:7897
-      - HTTPS_PROXY=http://172.25.80.1:7897
-      - http_proxy=http://172.25.80.1:7897
-      - https_proxy=http://172.25.80.1:7897
-      - NO_PROXY=localhost,127.0.0.1,backend,worker,redis
-      - no_proxy=localhost,127.0.0.1,backend,worker,redis
-    volumes:
-      - sqlite_data:/data
-      - easyocr_cache:/easyocr_models
-    depends_on:
-      redis:
-        condition: service_healthy
-      backend:
-        condition: service_healthy
-    restart: unless-stopped
-    networks:
-      - app-network
-    deploy:
-      resources:
-        limits:    { memory: 2G }
-        reservations: { memory: 512M }
 
   # ───────────────────────────────────────────
   # CELERY BEAT — Scheduler cho periodic tasks
@@ -199,13 +179,16 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        BACKEND_URL: http://backend:8000
+        NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL:-http://localhost:8000}
     container_name: supchi4-frontend
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
       - BACKEND_URL=http://backend:8000
-      - NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
+      - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL:-http://localhost:8000}
     depends_on:
       backend:
         condition: service_healthy
@@ -250,5 +233,4 @@ networks:
 volumes:
   sqlite_data:
   whisper_cache:
-  easyocr_cache:
   redis_data:
