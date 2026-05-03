@@ -42,7 +42,7 @@ export default function AdminJobs() {
               <p className="text-ghost text-sm mt-0.5">{data ? `${data.total} jobs` : ''}</p>
             </div>
             <button onClick={load}
-              className="text-xs glass px-3 py-2 rounded-xl border border-white/8
+              className="text-xs glass px-3 py-2 rounded-xl border border-gray-100
                          text-ghost hover:text-snow transition-colors flex items-center gap-1.5">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
@@ -59,7 +59,7 @@ export default function AdminJobs() {
                 className={`px-3 py-1.5 text-xs rounded-lg border transition-colors
                             ${status === s
                               ? 'bg-amber-glow/15 text-amber-glow border-amber-glow/30'
-                              : 'glass border-white/8 text-ghost hover:text-snow'
+                              : 'glass border-gray-100 text-ghost hover:text-snow'
                             }`}>
                 {s === '' ? 'Tất cả' : s.charAt(0).toUpperCase() + s.slice(1)}
               </button>
@@ -67,11 +67,11 @@ export default function AdminJobs() {
           </div>
 
           {/* Table */}
-          <div className="glass rounded-2xl border border-white/6 overflow-hidden">
+          <div className="glass rounded-2xl border border-gray-100 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-white/6">
+                  <tr className="border-b border-gray-100">
                     {['ID','User','Title / URL','Status','Progress','Source','Ngày tạo',''].map(h => (
                       <th key={h} className="px-4 py-3 text-left text-[11px] font-medium
                                              text-ghost uppercase tracking-wider whitespace-nowrap">
@@ -86,7 +86,7 @@ export default function AdminJobs() {
                   )}
                   {!loading && data?.items.map(job => (
                     <React.Fragment key={job.id}>
-                      <tr className="border-b border-white/4 hover:bg-white/2 transition-colors">
+                      <tr className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                         <td className="px-4 py-3 font-mono text-xs text-ghost">#{job.id}</td>
                         <td className="px-4 py-3 text-xs text-ghost">{job.username}</td>
                         <td className="px-4 py-3 max-w-[200px]">
@@ -97,7 +97,7 @@ export default function AdminJobs() {
                         <td className="px-4 py-3"><Badge status={job.status}/></td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden w-16">
+                            <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden w-16">
                               <div className="h-full bg-amber-glow/70 rounded-full"
                                 style={{ width: `${job.progress}%` }}/>
                             </div>
@@ -123,7 +123,7 @@ export default function AdminJobs() {
                             )}
                             {job.error_message && (
                               <button onClick={() => setExpanded(expanded === job.id ? null : job.id)}
-                                className="px-2 py-1 text-[11px] glass rounded border border-white/8
+                                className="px-2 py-1 text-[11px] glass rounded border border-gray-100
                                            text-ghost hover:text-red-400 transition-colors">
                                 Log
                               </button>
@@ -133,7 +133,7 @@ export default function AdminJobs() {
                       </tr>
                       {/* Error log expandable row */}
                       {expanded === job.id && job.error_message && (
-                        <tr className="border-b border-white/4 bg-red-500/5">
+                        <tr className="border-b border-gray-100 bg-red-500/5">
                           <td colSpan={8} className="px-4 py-3">
                             <p className="text-[11px] text-ghost mb-1 uppercase tracking-wider">Error log</p>
                             <pre className="text-xs text-red-400 whitespace-pre-wrap break-all

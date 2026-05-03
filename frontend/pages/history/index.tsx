@@ -70,7 +70,7 @@ export default function HistoryPage() {
           {loading && (
             <div className="space-y-3">
               {[1, 2, 3].map(i => (
-                <div key={i} className="rounded-xl p-3 sm:p-4 border border-white/5 flex gap-3">
+                <div key={i} className="rounded-xl p-3 sm:p-4 border border-gray-100 flex gap-3">
                   <div className="skeleton w-24 h-16 sm:w-32 sm:h-20 rounded-lg flex-shrink-0" />
                   <div className="flex-1 space-y-2 py-1">
                     <div className="skeleton h-3.5 w-2/3 rounded" />

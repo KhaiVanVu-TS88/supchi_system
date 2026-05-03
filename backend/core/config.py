@@ -29,6 +29,8 @@ class Settings:
 
     # ── Video storage ──
     MAX_VIDEOS_PER_USER: int = int(os.getenv("MAX_VIDEOS_PER_USER", "5"))
+    # Video dài hơn ngưỡng (phút) → API trả confirmation_required trừ khi client gửi confirm_long_video=True
+    VIDEO_DURATION_WARNING_MINUTES: int = int(os.getenv("VIDEO_DURATION_WARNING_MINUTES", "20"))
 
     # ── CORS ──
     CORS_ORIGINS: list = [

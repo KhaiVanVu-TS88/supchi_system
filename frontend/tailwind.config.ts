@@ -1,4 +1,8 @@
 /** @type {import('tailwindcss').Config} */
+/**
+ * Educational light UI — Notion × Duolingo × Anki
+ * BG #FFFFFF / #F7F9FC · Surface #FDFEFE · Brand #4CAF88
+ */
 module.exports = {
   content: [
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
@@ -13,34 +17,54 @@ module.exports = {
       },
       colors: {
         ink: {
-          950: '#08080f',
-          900: '#0f0f1a',
-          800: '#16162a',
-          700: '#1e1e38',
-          600: '#2a2a4a',
-          500: '#3a3a5c',
+          950: '#F7F9FC',
+          900: '#FFFFFF',
+          800: '#F7F9FC',
+          700: '#FDFEFE',
+          600: '#E8F6EF',
+          500: '#D1FAE5',
         },
+        /** Interactive accent slot — soft green brand */
         amber: {
-          glow: '#f5c842',
-          soft: '#f0a855',
-          dim: 'rgba(245,200,66,0.15)',
+          glow: '#4CAF88',
+          soft: '#6FD3A5',
+          dim: 'rgba(76, 175, 136, 0.18)',
         },
         jade: {
-          DEFAULT: '#4ecdc4',
-          dim: 'rgba(78,205,196,0.15)',
+          DEFAULT: '#E8F6EF',
+          dim: 'rgba(209, 250, 229, 0.65)',
         },
-        snow: '#f0ede8',
-        mist: 'rgba(240,237,232,0.6)',
-        ghost: 'rgba(240,237,232,0.3)',
+        snow: '#1F2937',
+        mist: '#6B7280',
+        ghost: '#9CA3AF',
+        brand: {
+          DEFAULT: '#4CAF88',
+          hover: '#6FD3A5',
+          highlight: '#E8F6EF',
+          active: '#D1FAE5',
+        },
+        edu: {
+          warn: '#FFB020',
+          error: '#EF4444',
+          info: '#3B82F6',
+        },
       },
-      // ── Thêm h-dvh, min-h-dvh cho dynamic viewport height ──
+      boxShadow: {
+        edu: '0 1px 2px rgba(31, 41, 55, 0.04), 0 2px 8px rgba(31, 41, 55, 0.06)',
+        'edu-md':
+          '0 4px 6px -1px rgba(31, 41, 55, 0.06), 0 8px 20px -4px rgba(31, 41, 55, 0.07)',
+        'edu-lg':
+          '0 12px 28px -6px rgba(31, 41, 55, 0.1), 0 4px 12px -2px rgba(31, 41, 55, 0.05)',
+      },
+      borderRadius: {
+        edu: '14px',
+      },
       height: {
         dvh: '100dvh',
       },
       minHeight: {
         dvh: '100dvh',
       },
-      // top-14 = 56px = chiều cao navbar
       top: {
         14: '3.5rem',
       },
@@ -54,8 +78,8 @@ module.exports = {
           '100%': { opacity: '1' },
         },
         'pulse-amber': {
-          '0%, 100%': { boxShadow: '0 0 0 0 rgba(245,200,66,0.4)' },
-          '50%': { boxShadow: '0 0 0 6px rgba(245,200,66,0)' },
+          '0%, 100%': { boxShadow: '0 0 0 0 rgba(76, 175, 136, 0.45)' },
+          '50%': { boxShadow: '0 0 0 7px rgba(76, 175, 136, 0)' },
         },
         shimmer: {
           '0%': { backgroundPosition: '-200% 0' },
@@ -74,8 +98,10 @@ module.exports = {
         shimmer: 'shimmer 2s linear infinite',
       },
       backgroundImage: {
-        'ink-radial': 'radial-gradient(ellipse 80% 60% at 50% -10%, #1e1e38 0%, #08080f 70%)',
-        'shimmer-gradient': 'linear-gradient(90deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 100%)',
+        'ink-radial':
+          'radial-gradient(ellipse 120% 90% at 50% -25%, rgba(232, 246, 239, 0.85) 0%, rgba(247, 249, 252, 0.5) 42%, #FFFFFF 72%, #FFFFFF 100%)',
+        'shimmer-gradient':
+          'linear-gradient(90deg, rgba(243, 244, 246, 0.8) 0%, rgba(232, 246, 239, 0.9) 50%, rgba(243, 244, 246, 0.8) 100%)',
       },
     },
   },

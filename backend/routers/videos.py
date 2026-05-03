@@ -11,6 +11,7 @@ Tối ưu:
 import re
 import logging
 from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List, Optional
@@ -20,7 +21,8 @@ from core.rate_limiter import rate_limit, RateLimitConfig, _check_rate_limit, _g
 from models.user import User
 from models.video import Video, Subtitle
 from models.job import ProcessingJob
-from pipeline.youtube import get_video_id
+from pipeline.subtitle_extractor import peek_video_duration_and_subtitle_route
+from core.config import get_settings
 from services.video_cache import (
     check_duplicate_video,
     mark_video_processing,
@@ -54,6 +56,8 @@ def extract_video_id(url: str) -> Optional[str]:
 class AnalyzeRequest(BaseModel):
     url: str
     title: Optional[str] = None
+    # True = người dùng đã xác nhận tiếp tục với video vượt ngưỡng độ dài (VIDEO_DURATION_WARNING_MINUTES)
+    confirm_long_video: bool = False
 
 
 class AnalyzeJobResponse(BaseModel):
@@ -61,8 +65,12 @@ class AnalyzeJobResponse(BaseModel):
     video_id: Optional[int] = None  # Nếu đã xử lý trước đó
     status: str
     message: str
-    source: str = "new"  # "new" | "cached" | "processing"
+    source: str = "new"  # "new" | "cached" | "processing" | "confirmation_required"
     evicted_videos: List[str] = []  # Danh sách video đã bị tự động xóa
+    duration_seconds: Optional[float] = None
+    duration_minutes: Optional[float] = None
+    threshold_minutes: Optional[int] = None
+    subtitle_route: Optional[str] = None  # "manual" | "whisper" — ước lượng trước khi xử lý
 
 
 class SubtitleOut(BaseModel):
@@ -116,7 +124,7 @@ class DuplicateVideoResponse(BaseModel):
 
 # ── Endpoints ──
 
-@router.post("/analyze", response_model=AnalyzeJobResponse, status_code=202)
+@router.post("/analyze")
 def analyze_video(
     request: AnalyzeRequest,
     db: Session = Depends(get_db),
@@ -156,21 +164,23 @@ def analyze_video(
             Video.is_deleted == False,
         ).first()
         if existing:
-            return AnalyzeJobResponse(
+            body = AnalyzeJobResponse(
                 video_id=existing.id,
                 status="done",
                 message="Video đã được xử lý trước đó.",
                 source="cached",
             )
+            return JSONResponse(status_code=202, content=body.model_dump())
 
     if dup_result == "already_processing":
         # Đang xử lý → trả về job cũ
-        return AnalyzeJobResponse(
+        body = AnalyzeJobResponse(
             job_id=cached_id,
             status="processing",
             message="Video này đang được xử lý. Vui lòng đợi.",
             source="processing",
         )
+        return JSONResponse(status_code=202, content=body.model_dump())
 
     # ── 3. FIFO — xóa video cũ nếu đạt giới hạn ──
     evicted = enforce_video_limit(current_user.id, db)
@@ -187,6 +197,33 @@ def analyze_video(
             status_code=429,
             detail="Bạn có quá nhiều video đang chờ xử lý (tối đa 3). Vui lòng đợi hoàn thành.",
         )
+
+    # ── 4b. Cảnh báo video dài — chỉ khi chưa xác nhận (đã xác nhận → bỏ qua peek, tránh gọi YouTube 2 lần) ──
+    settings = get_settings()
+    threshold_min = settings.VIDEO_DURATION_WARNING_MINUTES
+    if not request.confirm_long_video:
+        duration_sec, subtitle_route = peek_video_duration_and_subtitle_route(url)
+        if duration_sec is not None and duration_sec > threshold_min * 60:
+            route_hint = (
+                "Hệ thống sẽ dùng phụ đề có sẵn trên YouTube (thường nhanh hơn)."
+                if subtitle_route == "manual"
+                else "Video không có phụ đề tay tiếng Trung — hệ thống sẽ nhận dạng giọng (Whisper), có thể rất lâu."
+            )
+            body = AnalyzeJobResponse(
+                job_id=None,
+                video_id=None,
+                status="needs_confirmation",
+                message=(
+                    f"Video khoảng {duration_sec / 60:.1f} phút (ngưỡng cảnh báo {threshold_min} phút). "
+                    f"{route_hint} Bạn có muốn tiếp tục?"
+                ),
+                source="confirmation_required",
+                duration_seconds=duration_sec,
+                duration_minutes=round(duration_sec / 60, 1),
+                threshold_minutes=threshold_min,
+                subtitle_route=subtitle_route,
+            )
+            return JSONResponse(status_code=200, content=body.model_dump())
 
     # ── 5. Tạo Job ──
     job = ProcessingJob(
@@ -209,13 +246,14 @@ def analyze_video(
 
     logger.info(f"Job {job.id} queued for user {current_user.id}: {url}")
 
-    return AnalyzeJobResponse(
+    body = AnalyzeJobResponse(
         job_id=job.id,
         status="queued",
         message="Video đang được xử lý.",
         source="new",
         evicted_videos=evicted,
     )
+    return JSONResponse(status_code=202, content=body.model_dump())
 
 
 @router.get("", response_model=List[VideoOut])

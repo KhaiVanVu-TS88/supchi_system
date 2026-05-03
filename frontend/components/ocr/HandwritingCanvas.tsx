@@ -166,7 +166,7 @@ export default function HandwritingCanvas({ onResult, onLoading, isLoading }: Pr
             </p>
 
             {/* Canvas */}
-            <div className="relative rounded-xl overflow-hidden border border-white/10">
+            <div className="relative rounded-xl overflow-hidden border border-gray-100">
                 <canvas
                     ref={canvasRef}
                     width={CANVAS_W}
@@ -186,7 +186,7 @@ export default function HandwritingCanvas({ onResult, onLoading, isLoading }: Pr
                 {isEmpty && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <div className="text-center">
-                            <p className="font-serif text-6xl text-white/10 select-none">写</p>
+                            <p className="font-serif text-6xl text-gray-200 select-none">写</p>
                             <p className="text-ghost/50 text-xs mt-1">Vẽ chữ ở đây</p>
                         </div>
                     </div>
@@ -218,7 +218,7 @@ export default function HandwritingCanvas({ onResult, onLoading, isLoading }: Pr
                     disabled={isEmpty || isLoading}
                     className="flex-1 flex items-center justify-center gap-2 py-2.5 glass rounded-xl
                      text-ghost hover:text-snow transition-colors disabled:opacity-40 text-sm
-                     border border-white/6 hover:border-white/15"
+                     border border-gray-100 hover:border-gray-100"
                 >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <polyline points="3 6 5 6 21 6" />

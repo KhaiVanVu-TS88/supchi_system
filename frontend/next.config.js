@@ -9,6 +9,9 @@ const nextConfig = {
   // Đồng bộ với tsconfig.json paths
   webpack(config) {
     config.resolve.alias['@'] = path.resolve(__dirname)
+    if (process.env.NEXT_BUILD_LOW_MEMORY === '1') {
+      config.parallelism = 1
+    }
     return config
   },
 

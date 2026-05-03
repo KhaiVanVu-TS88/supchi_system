@@ -48,7 +48,7 @@ export default function AuthForm({ mode, onSubmit, error, isLoading }: AuthFormP
         </div>
 
         {/* Card */}
-        <div className="glass rounded-2xl p-6 sm:p-8 border border-white/8">
+        <div className="glass rounded-2xl p-6 sm:p-8 border border-gray-100">
           <h2 className="text-lg font-semibold text-snow mb-5 sm:mb-6">
             {mode === 'login' ? 'Đăng nhập' : 'Đăng ký tài khoản'}
           </h2>

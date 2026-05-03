@@ -40,7 +40,7 @@ export default function OcrResult({ result }: Props) {
                 </div>
 
                 {/* Raw text — clickable words */}
-                <div className="border-t border-white/6 pt-4">
+                <div className="border-t border-gray-100 pt-4">
                     <p className="text-[11px] text-ghost uppercase tracking-wider mb-2">Văn bản nhận dạng</p>
                     <div className="font-serif text-2xl text-snow leading-loose flex flex-wrap gap-x-1">
                         {result.words.length > 0
@@ -84,7 +84,7 @@ export default function OcrResult({ result }: Props) {
 
                 {/* Word breakdown */}
                 {result.words.length > 0 && (
-                    <div className="border-t border-white/6 pt-4">
+                    <div className="border-t border-gray-100 pt-4">
                         <p className="text-[11px] text-ghost uppercase tracking-wider mb-3">
                             Chi tiết từng từ
                             <span className="ml-1.5 text-amber-glow/60 normal-case">(click để tra từ điển)</span>
@@ -94,7 +94,7 @@ export default function OcrResult({ result }: Props) {
                                 <div
                                     key={i}
                                     onClick={e => handleWordClick(e, w.word)}
-                                    className="flex items-center gap-3 p-2.5 rounded-xl bg-white/3 hover:bg-amber-glow/8
+                                    className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 hover:bg-amber-glow/8
                              cursor-pointer transition-colors border border-transparent hover:border-amber-glow/20"
                                 >
                                     <span className="font-serif text-xl text-snow w-12 text-center flex-shrink-0">

@@ -109,22 +109,23 @@ export default function WordPopup({ word, onClose, anchorRect }: Props) {
     return (
         <div
             ref={popupRef}
-            className="z-[9999] w-80 rounded-2xl shadow-2xl border border-white/15 overflow-hidden animate-fade-in"
+            className="z-[9999] w-80 rounded-2xl border border-gray-100 overflow-hidden animate-fade-in"
             style={{
                 ...style,
-                background: 'rgba(15, 15, 20, 0.95)',
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
+                background: 'rgba(253, 254, 254, 0.98)',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+                boxShadow: '0 12px 40px rgba(31, 41, 55, 0.1), 0 4px 12px rgba(31, 41, 55, 0.06)',
             }}
         >
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/8">
-                <span className="text-[10px] text-gray-400 uppercase tracking-widest font-medium">
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100">
+                <span className="text-[10px] text-ghost uppercase tracking-widest font-medium">
                     Tra nhanh
                 </span>
                 <button
                     onClick={onClose}
-                    className="text-gray-500 hover:text-white transition-colors p-0.5 rounded"
+                    className="text-ghost hover:text-snow transition-colors p-0.5 rounded"
                     aria-label="Đóng"
                 >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -141,15 +142,15 @@ export default function WordPopup({ word, onClose, anchorRect }: Props) {
                     <div className="space-y-3 animate-pulse">
                         <div className="flex items-start justify-between gap-3">
                             <div className="space-y-2">
-                                <div className="h-10 w-16 bg-white/10 rounded-lg" />
-                                <div className="h-4 w-24 bg-white/10 rounded" />
-                                <div className="h-5 w-14 bg-white/10 rounded-full" />
+                                <div className="h-10 w-16 bg-gray-100 rounded-lg" />
+                                <div className="h-4 w-24 bg-gray-100 rounded" />
+                                <div className="h-5 w-14 bg-gray-100 rounded-full" />
                             </div>
-                            <div className="w-11 h-11 bg-white/10 rounded-xl flex-shrink-0" />
+                            <div className="w-11 h-11 bg-gray-100 rounded-xl flex-shrink-0" />
                         </div>
                         <div className="space-y-1.5">
-                            <div className="h-4 w-full bg-white/8 rounded" />
-                            <div className="h-4 w-3/4 bg-white/8 rounded" />
+                            <div className="h-4 w-full bg-gray-50 rounded" />
+                            <div className="h-4 w-3/4 bg-gray-50 rounded" />
                         </div>
                     </div>
                 )}
@@ -160,7 +161,7 @@ export default function WordPopup({ word, onClose, anchorRect }: Props) {
                         <p className="text-red-400 text-sm mb-3">{error}</p>
                         <button
                             onClick={() => window.open(`/dictionary?q=${encodeURIComponent(word)}`, '_blank')}
-                            className="text-xs text-amber-400 hover:text-amber-300 underline"
+                            className="text-xs text-amber-glow hover:text-jade underline"
                         >
                             Mở trong từ điển
                         </button>
@@ -170,11 +171,11 @@ export default function WordPopup({ word, onClose, anchorRect }: Props) {
                 {/* Fallback khi không có entry */}
                 {showFallback && !error && (
                     <div className="text-center py-4">
-                        <p className="font-serif text-2xl text-white mb-1">{word}</p>
-                        <p className="text-gray-500 text-xs mb-3">Không có trong từ điển</p>
+                        <p className="font-serif text-2xl text-snow mb-1">{word}</p>
+                        <p className="text-ghost text-xs mb-3">Không có trong từ điển</p>
                         <button
                             onClick={() => window.open(`/dictionary?q=${encodeURIComponent(word)}`, '_blank')}
-                            className="text-xs text-amber-400 hover:text-amber-300 underline"
+                            className="text-xs text-amber-glow hover:text-jade underline"
                         >
                             Mở trong từ điển
                         </button>
@@ -188,15 +189,15 @@ export default function WordPopup({ word, onClose, anchorRect }: Props) {
                         {/* Word + Pinyin + Audio */}
                         <div className="flex items-start justify-between gap-2">
                             <div>
-                                <span className="font-serif text-3xl text-white leading-none">{dictEntry.word}</span>
-                                <p className="text-amber-400 font-mono text-sm mt-1">{dictEntry.pinyin}</p>
-                                <span className="text-[10px] bg-amber-400/15 text-amber-400 px-2 py-0.5 rounded-full mt-1 inline-block font-medium">
+                                <span className="font-serif text-3xl text-snow leading-none">{dictEntry.word}</span>
+                                <p className="text-amber-glow font-mono text-sm mt-1">{dictEntry.pinyin}</p>
+                                <span className="text-[10px] bg-amber-glow/15 text-amber-glow px-2 py-0.5 rounded-full mt-1 inline-block font-medium">
                                     {dictEntry.pos}
                                 </span>
                             </div>
                             <button
                                 onClick={playAudio}
-                                className="p-2 rounded-xl bg-amber-400/10 hover:bg-amber-400/20 text-amber-400 transition-colors flex-shrink-0"
+                                className="p-2 rounded-xl bg-amber-glow/10 hover:bg-amber-glow/20 text-amber-glow transition-colors flex-shrink-0"
                                 title="Phát âm"
                             >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -208,11 +209,11 @@ export default function WordPopup({ word, onClose, anchorRect }: Props) {
 
                         {/* ĐA NGHĨA */}
                         {meanings.length > 0 && (
-                            <div className="border-t border-white/8 pt-2.5">
-                                <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <div className="border-t border-gray-100 pt-2.5">
+                                <p className="text-[10px] text-ghost uppercase tracking-wider mb-2 flex items-center gap-1.5">
                                     Nghĩa
                                     {meanings.length > 1 && (
-                                        <span className="bg-amber-400/20 text-amber-400 text-[9px] px-1.5 rounded-full">
+                                        <span className="bg-amber-glow/20 text-amber-glow text-[9px] px-1.5 rounded-full">
                                             {meanings.length}
                                         </span>
                                     )}
@@ -220,8 +221,8 @@ export default function WordPopup({ word, onClose, anchorRect }: Props) {
                                 <ol className="space-y-1.5">
                                     {meanings.slice(0, 5).map((m, i) => (
                                         <li key={i} className="flex items-start gap-2 text-sm">
-                                            <span className="flex-shrink-0 text-amber-400/50 font-mono text-xs mt-0.5 w-3">{i + 1}.</span>
-                                            <span className={i === 0 ? 'text-white font-medium' : 'text-gray-300'}>{m}</span>
+                                            <span className="flex-shrink-0 text-amber-glow/50 font-mono text-xs mt-0.5 w-3">{i + 1}.</span>
+                                            <span className={i === 0 ? 'text-snow font-medium' : 'text-mist'}>{m}</span>
                                         </li>
                                     ))}
                                 </ol>
@@ -230,10 +231,10 @@ export default function WordPopup({ word, onClose, anchorRect }: Props) {
 
                         {/* Câu ví dụ */}
                         {dictEntry.example?.zh && dictEntry.example.vi && (
-                            <div className="bg-amber-400/5 border border-amber-400/10 rounded-xl px-3 py-2.5">
-                                <p className="text-[10px] text-amber-400/80 uppercase tracking-wider mb-1.5">Ví dụ</p>
-                                <p className="font-serif text-base text-white leading-relaxed">{dictEntry.example.zh}</p>
-                                <p className="text-gray-400 text-xs mt-0.5 leading-relaxed">{dictEntry.example.vi}</p>
+                            <div className="bg-amber-glow/5 border border-amber-glow/10 rounded-xl px-3 py-2.5">
+                                <p className="text-[10px] text-amber-glow/80 uppercase tracking-wider mb-1.5">Ví dụ</p>
+                                <p className="font-serif text-base text-snow leading-relaxed">{dictEntry.example.zh}</p>
+                                <p className="text-mist text-xs mt-0.5 leading-relaxed">{dictEntry.example.vi}</p>
                             </div>
                         )}
                     </div>
@@ -243,8 +244,8 @@ export default function WordPopup({ word, onClose, anchorRect }: Props) {
                 {dictEntry && !loading && (
                     <button
                         onClick={() => window.open(`/dictionary?q=${encodeURIComponent(word)}`, '_blank')}
-                        className="w-full text-xs text-gray-500 hover:text-amber-400 transition-colors py-2
-                         border-t border-white/5 flex items-center justify-center gap-1.5"
+                        className="w-full text-xs text-ghost hover:text-amber-glow transition-colors py-2
+                         border-t border-gray-100 flex items-center justify-center gap-1.5"
                     >
                         Xem chi tiết trong từ điển
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

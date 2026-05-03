@@ -7,7 +7,7 @@ export default function Pagination({ page, total_pages, onChange }: Props) {
   return (
     <div className="flex items-center gap-2 justify-end mt-4">
       <button onClick={() => onChange(page - 1)} disabled={page === 1}
-        className="px-3 py-1.5 text-xs glass rounded-lg border border-white/8
+        className="px-3 py-1.5 text-xs glass rounded-lg border border-gray-100
                    text-ghost hover:text-snow disabled:opacity-30 transition-colors">
         ← Trước
       </button>
@@ -15,7 +15,7 @@ export default function Pagination({ page, total_pages, onChange }: Props) {
         {page} / {total_pages}
       </span>
       <button onClick={() => onChange(page + 1)} disabled={page === total_pages}
-        className="px-3 py-1.5 text-xs glass rounded-lg border border-white/8
+        className="px-3 py-1.5 text-xs glass rounded-lg border border-gray-100
                    text-ghost hover:text-snow disabled:opacity-30 transition-colors">
         Tiếp →
       </button>

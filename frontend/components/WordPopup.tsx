@@ -91,18 +91,18 @@ export default function WordPopup({ word, onClose, anchorRect }: Props) {
                 {/* Sheet trượt lên từ dưới */}
                 <div
                     ref={popupRef}
-                    className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-white/10
+                    className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-gray-100
                      rounded-t-3xl pb-safe overflow-hidden
                      animate-slide-up"
                     style={{ maxHeight: '75vh' }}
                 >
                     {/* Handle bar */}
                     <div className="flex justify-center pt-3 pb-1">
-                        <div className="w-10 h-1 rounded-full bg-white/20" />
+                        <div className="w-10 h-1 rounded-full bg-gray-200" />
                     </div>
 
                     {/* Header */}
-                    <div className="flex items-center justify-between px-5 py-2 border-b border-white/6">
+                    <div className="flex items-center justify-between px-5 py-2 border-b border-gray-100">
                         <span className="text-xs text-ghost uppercase tracking-wider">Từ điển</span>
                         <button
                             onClick={onClose}
@@ -148,7 +148,7 @@ export default function WordPopup({ word, onClose, anchorRect }: Props) {
                                 </div>
 
                                 {/* Nghĩa */}
-                                <div className="border-t border-white/6 pt-4">
+                                <div className="border-t border-gray-100 pt-4">
                                     <p className="text-[11px] text-ghost uppercase tracking-wider mb-3 flex items-center gap-1.5">
                                         Nghĩa tiếng Việt
                                         {meanings.length > 1 && (
@@ -173,7 +173,7 @@ export default function WordPopup({ word, onClose, anchorRect }: Props) {
 
                                 {/* Ví dụ */}
                                 {entry.example?.zh && entry.example.zh !== entry.word && (
-                                    <div className="border-t border-white/6 pt-4">
+                                    <div className="border-t border-gray-100 pt-4">
                                         <p className="text-[11px] text-ghost uppercase tracking-wider mb-2">Ví dụ</p>
                                         <p className="font-serif text-snow text-xl leading-relaxed">{entry.example.zh}</p>
                                         {entry.example.vi && (
@@ -186,7 +186,7 @@ export default function WordPopup({ word, onClose, anchorRect }: Props) {
                                 <button
                                     onClick={() => { window.open(`/dictionary?q=${encodeURIComponent(word)}`, '_blank'); onClose() }}
                                     className="w-full py-3 text-sm text-ghost active:text-amber-glow transition-colors
-                             border-t border-white/5 flex items-center justify-center gap-1 mt-2">
+                             border-t border-gray-100 flex items-center justify-center gap-1 mt-2">
                                     Xem đầy đủ
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <path d="M5 12h14M12 5l7 7-7 7" />
@@ -204,12 +204,12 @@ export default function WordPopup({ word, onClose, anchorRect }: Props) {
     return (
         <div
             ref={popupRef}
-            className="z-50 w-72 glass rounded-2xl shadow-2xl border border-white/10
+            className="z-50 w-72 glass rounded-2xl shadow-2xl border border-gray-100
                  overflow-hidden animate-fade-in"
             style={desktopStyle()}
         >
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/6">
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100">
                 <span className="text-[10px] text-ghost uppercase tracking-wider">Từ điển</span>
                 <button onClick={onClose}
                     className="text-ghost hover:text-snow transition-colors p-1.5 -mr-1"
@@ -249,7 +249,7 @@ export default function WordPopup({ word, onClose, anchorRect }: Props) {
                             </button>
                         </div>
 
-                        <div className="border-t border-white/6 pt-3">
+                        <div className="border-t border-gray-100 pt-3">
                             <p className="text-[10px] text-ghost uppercase tracking-wider mb-2 flex items-center gap-1">
                                 Nghĩa
                                 {meanings.length > 1 && (
@@ -271,7 +271,7 @@ export default function WordPopup({ word, onClose, anchorRect }: Props) {
                         <button
                             onClick={() => { window.open(`/dictionary?q=${encodeURIComponent(word)}`, '_blank'); onClose() }}
                             className="w-full text-xs text-ghost hover:text-amber-glow transition-colors text-center
-                         py-1.5 border-t border-white/5 flex items-center justify-center gap-1">
+                         py-1.5 border-t border-gray-100 flex items-center justify-center gap-1">
                             Xem đầy đủ
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M5 12h14M12 5l7 7-7 7" />

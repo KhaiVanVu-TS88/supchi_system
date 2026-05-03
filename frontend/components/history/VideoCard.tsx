@@ -62,7 +62,7 @@ export default function VideoCard({ video, onDelete }: Props) {
         </Link>
 
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
-          <span className="text-[10px] sm:text-[11px] font-mono text-ghost bg-white/5 px-1.5 py-0.5 rounded">
+          <span className="text-[10px] sm:text-[11px] font-mono text-ghost bg-gray-50 px-1.5 py-0.5 rounded">
             {video.video_id}
           </span>
           <span className="text-[10px] sm:text-[11px] text-ghost flex items-center gap-1">

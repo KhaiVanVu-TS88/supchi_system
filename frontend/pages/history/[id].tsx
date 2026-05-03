@@ -65,7 +65,7 @@ export default function VideoDetailPage() {
         {video && (
           <div className="flex-1 flex overflow-hidden" style={{ height: 'calc(100vh - 57px)' }}>
             {/* Left: Video player */}
-            <div className="w-[52%] flex-shrink-0 flex flex-col overflow-hidden border-r border-white/6 px-6 pt-6 pb-4">
+            <div className="w-[52%] flex-shrink-0 flex flex-col overflow-hidden border-r border-gray-100 px-6 pt-6 pb-4">
               <p className="text-xs text-ghost mb-3 truncate">
                 <span className="text-amber-glow mr-2">←</span>
                 <button onClick={() => router.push('/history')} className="hover:text-snow transition-colors">

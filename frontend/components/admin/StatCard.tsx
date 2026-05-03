@@ -11,7 +11,7 @@ export default function StatCard({ label, value, sub, color = 'default', icon }:
     amber:   'border-amber-glow/20 bg-amber-glow/5',
     jade:    'border-jade/20 bg-jade/5',
     red:     'border-red-500/20 bg-red-500/5',
-    default: 'border-white/8 bg-white/3',
+    default: 'border-gray-100 bg-gray-50',
   }
   const valueColors = {
     amber: 'text-amber-glow', jade: 'text-jade',

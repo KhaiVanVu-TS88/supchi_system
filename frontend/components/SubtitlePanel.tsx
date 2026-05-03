@@ -75,7 +75,7 @@ function isCardCentered(
 // ── Skeleton ──
 function SkeletonCard() {
   return (
-    <div className="rounded-xl p-4 border border-white/5 space-y-3 mx-1 mb-2">
+    <div className="rounded-xl p-4 border border-gray-100 space-y-3 mx-1 mb-2">
       <div className="flex gap-2 items-center">
         <div className="skeleton h-3 w-8 rounded" />
         <div className="skeleton h-3 w-24 rounded" />
@@ -148,8 +148,8 @@ const SubtitleRow = memo<SubtitleRowProps>(function SubtitleRow({ subtitle, isAc
       className={`
         relative rounded-xl p-4 border transition-all duration-200 cursor-pointer mb-2 mx-1
         ${isActive
-          ? 'bg-amber-glow/10 border-amber-glow/40 shadow-lg shadow-amber-glow/5'
-          : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.12]'
+          ? 'bg-brand-active/95 border-amber-glow/45 shadow-edu-md ring-1 ring-amber-glow/20'
+          : 'bg-ink-700 border-gray-100 hover:bg-white hover:border-gray-200 hover:shadow-edu'
         }
       `}
     >
@@ -182,7 +182,7 @@ const SubtitleRow = memo<SubtitleRowProps>(function SubtitleRow({ subtitle, isAc
 
       <p className="text-xs font-mono text-amber-glow/80 mb-1.5 leading-relaxed">{subtitle.pinyin}</p>
 
-      <div className={`h-px w-full mb-1.5 ${isActive ? 'bg-amber-glow/20' : 'bg-white/5'}`} />
+      <div className={`h-px w-full mb-1.5 ${isActive ? 'bg-amber-glow/25' : 'bg-gray-200/80'}`} />
 
       <p className="text-sm text-mist/80 leading-relaxed">{subtitle.vietnamese}</p>
     </div>
@@ -315,10 +315,10 @@ export default function SubtitlePanel({
             )}
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-mono bg-white/5 border border-white/8 rounded px-1.5 py-0.5 text-ghost">
+            <span className="text-[11px] font-mono bg-gray-50 border border-gray-100 rounded px-1.5 py-0.5 text-ghost">
               {subtitles.length}
             </span>
-            <span className="text-[11px] font-mono bg-white/5 border border-white/8 rounded px-1.5 py-0.5 text-ghost">
+            <span className="text-[11px] font-mono bg-gray-50 border border-gray-100 rounded px-1.5 py-0.5 text-ghost">
               {fmtTime(totalDuration)}
             </span>
           </div>

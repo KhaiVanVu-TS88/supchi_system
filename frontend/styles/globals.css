@@ -1,4 +1,4 @@
-/* styles/globals.css — Mobile-first v3 */
+/* styles/globals.css — Educational light UI (Notion × Duolingo) */
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;700&display=swap');
 
 @tailwind base;
@@ -25,10 +25,10 @@
     }
 
     body {
-        background-color: #08080f;
-        background-image: radial-gradient(ellipse 80% 60% at 50% -10%, #1e1e38 0%, #08080f 70%);
+        background-color: #FFFFFF;
+        background-image: radial-gradient(ellipse 120% 90% at 50% -25%, rgba(232, 246, 239, 0.85) 0%, rgba(247, 249, 252, 0.5) 42%, #FFFFFF 72%, #FFFFFF 100%);
         background-attachment: fixed;
-        color: #f0ede8;
+        color: #1F2937;
         font-family: 'DM Sans', sans-serif;
         min-height: 100vh;
         min-height: 100dvh;
@@ -50,12 +50,12 @@
         }
 
         ::-webkit-scrollbar-thumb {
-            background: rgba(245, 200, 66, 0.25);
+            background: rgba(156, 163, 175, 0.45);
             border-radius: 10px;
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: rgba(245, 200, 66, 0.45);
+            background: rgba(107, 114, 128, 0.55);
         }
     }
 
@@ -74,41 +74,41 @@
 /* ===== COMPONENTS ===== */
 @layer components {
 
-    /* Glassmorphism */
+    /* Glass — light frosted panels */
     .glass {
-        background: rgba(22, 22, 42, 0.7);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.07);
+        background: rgba(253, 254, 254, 0.94);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border: 1px solid rgba(229, 231, 235, 0.85);
+        box-shadow: 0 1px 2px rgba(31, 41, 55, 0.04), 0 4px 16px rgba(31, 41, 55, 0.06);
     }
 
     /* ── Subtitle card ── */
     .sub-card {
         position: relative;
         border-radius: 0.875rem;
-        /* Tăng padding trên mobile cho tap target lớn hơn */
         padding: 1rem;
         cursor: pointer;
-        transition: background 0.15s, border-color 0.15s, transform 0.15s;
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.06);
+        transition: background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease, transform 0.22s ease;
+        background: #FDFEFE;
+        border: 1px solid rgba(229, 231, 235, 0.95);
+        box-shadow: 0 1px 2px rgba(31, 41, 55, 0.03), 0 2px 8px rgba(31, 41, 55, 0.04);
         -webkit-tap-highlight-color: transparent;
         user-select: none;
     }
 
-    /* Hover chỉ trên thiết bị có hover (tránh sticky state trên touch) */
     @media (hover: hover) {
         .sub-card:hover {
-            background: rgba(255, 255, 255, 0.055);
-            border-color: rgba(255, 255, 255, 0.1);
-            transform: translateX(3px);
+            background: #FFFFFF;
+            border-color: rgba(76, 175, 136, 0.35);
+            box-shadow: 0 4px 14px rgba(76, 175, 136, 0.12), 0 2px 6px rgba(31, 41, 55, 0.04);
+            transform: translateX(2px);
         }
     }
 
-    /* Active state cho touch */
     .sub-card:active {
-        background: rgba(255, 255, 255, 0.07);
-        transform: scale(0.99);
+        background: #F7F9FC;
+        transform: scale(0.995);
     }
 
     .sub-card::before {
@@ -118,52 +118,49 @@
         top: 14px;
         bottom: 14px;
         width: 3px;
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(76, 175, 136, 0.35);
         border-radius: 0 3px 3px 0;
-        transition: background 0.2s;
+        transition: background 0.22s ease;
     }
 
     .sub-card-active {
-        background: rgba(245, 200, 66, 0.08) !important;
-        border-color: rgba(245, 200, 66, 0.3) !important;
-        transform: translateX(4px) !important;
-        box-shadow: 0 4px 24px rgba(245, 200, 66, 0.1), inset 0 0 0 1px rgba(245, 200, 66, 0.15);
+        background: #FFFFFF !important;
+        border-color: rgba(76, 175, 136, 0.45) !important;
+        transform: translateX(3px) !important;
+        box-shadow: 0 6px 20px rgba(76, 175, 136, 0.18), 0 2px 8px rgba(31, 41, 55, 0.06) !important;
     }
 
     .sub-card-active::before {
-        background: linear-gradient(180deg, #f5c842, #f0a855) !important;
+        background: linear-gradient(180deg, #4CAF88, #6FD3A5, #E8F6EF) !important;
     }
 
     /* ── Skeleton loader ── */
     .skeleton {
         background: linear-gradient(90deg,
-                rgba(255, 255, 255, 0.03) 0%,
-                rgba(255, 255, 255, 0.08) 50%,
-                rgba(255, 255, 255, 0.03) 100%);
+                rgba(243, 244, 246, 0.9) 0%,
+                rgba(232, 246, 239, 0.95) 50%,
+                rgba(243, 244, 246, 0.9) 100%);
         background-size: 200% 100%;
         animation: shimmer 1.8s linear infinite;
-        border-radius: 6px;
+        border-radius: 8px;
     }
 
-    /* ── URL Input ──
-     font-size: 16px pada mobile → iOS tidak zoom saat focus
-  */
+    /* ── URL Input ── */
     .url-input {
         width: 100%;
-        background: rgba(22, 22, 42, 0.8);
+        background: #FFFFFF;
         border-radius: 0.875rem;
         padding: 0.9375rem 1rem 0.9375rem 2.75rem;
-        color: #f0ede8;
+        color: #1F2937;
         font-family: 'DM Sans', sans-serif;
         font-size: 16px;
-        /* iOS zoom prevention */
         line-height: 1.5;
         outline: none;
-        transition: border-color 0.2s, box-shadow 0.2s;
-        border: 1.5px solid rgba(255, 255, 255, 0.08);
-        caret-color: #f5c842;
+        transition: border-color 0.25s ease, box-shadow 0.25s ease;
+        border: 1.5px solid #E5E7EB;
+        caret-color: #4CAF88;
+        box-shadow: 0 1px 2px rgba(31, 41, 55, 0.03);
         -webkit-appearance: none;
-        /* Remove iOS default styling */
     }
 
     @media (min-width: 640px) {
@@ -174,17 +171,15 @@
     }
 
     .url-input::placeholder {
-        color: rgba(240, 237, 232, 0.3);
+        color: rgba(156, 163, 175, 0.95);
     }
 
     .url-input:focus {
-        border-color: rgba(245, 200, 66, 0.5);
-        box-shadow: 0 0 0 3px rgba(245, 200, 66, 0.08);
+        border-color: #4CAF88;
+        box-shadow: 0 0 0 3px rgba(76, 175, 136, 0.22);
     }
 
-    /* ── Button primary ──
-     min-height: 48px cho touch targets (WCAG 2.5.5 AAA = 44px)
-  */
+    /* ── Button primary ── */
     .btn-primary {
         position: relative;
         overflow: hidden;
@@ -197,12 +192,13 @@
         font-weight: 600;
         font-size: 0.9375rem;
         letter-spacing: 0.02em;
-        transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
-        background: linear-gradient(135deg, #f5c842, #f0a855);
-        color: #0f0f1a;
+        transition: transform 0.22s ease, box-shadow 0.22s ease, opacity 0.22s ease, background 0.22s ease;
+        background: linear-gradient(135deg, #4CAF88 0%, #3daf7e 100%);
+        color: #FFFFFF;
         border: none;
         cursor: pointer;
         min-height: 48px;
+        box-shadow: 0 2px 6px rgba(76, 175, 136, 0.35), 0 1px 2px rgba(31, 41, 55, 0.06);
         -webkit-tap-highlight-color: transparent;
         user-select: none;
     }
@@ -210,16 +206,17 @@
     @media (hover: hover) {
         .btn-primary:hover:not(:disabled) {
             transform: translateY(-1px);
-            box-shadow: 0 8px 28px rgba(245, 200, 66, 0.3);
+            background: linear-gradient(135deg, #6FD3A5 0%, #4CAF88 100%);
+            box-shadow: 0 8px 24px rgba(76, 175, 136, 0.38), 0 2px 8px rgba(31, 41, 55, 0.06);
         }
     }
 
     .btn-primary:active:not(:disabled) {
-        transform: scale(0.97);
+        transform: scale(0.98);
     }
 
     .btn-primary:disabled {
-        opacity: 0.4;
+        opacity: 0.45;
         cursor: not-allowed;
     }
 
@@ -229,11 +226,11 @@
         bottom: 0;
         left: 0;
         right: 0;
-        background: rgba(12, 12, 22, 0.97);
-        backdrop-filter: blur(24px);
-        -webkit-backdrop-filter: blur(24px);
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
-        /* Safe area for iPhone home indicator */
+        background: rgba(255, 255, 255, 0.94);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-top: 1px solid rgba(229, 231, 235, 0.95);
+        box-shadow: 0 -4px 24px rgba(31, 41, 55, 0.06);
         padding-bottom: env(safe-area-inset-bottom, 0px);
         z-index: 50;
     }
@@ -499,14 +496,14 @@
  * Video column:
  * - flex-shrink-0: KHÔNG bị nén, luôn giữ kích thước tự nhiên
  * - w-full: full width trên mobile
- * - bg-ink-900: nền tối để video không bị viền trắng
+ * - nền secondary nhẹ để tách vùng video
  * - border-b: đường kẻ ngăn cách video và subtitle trên mobile
  */
 .layout-video-col {
     flex-shrink: 0;
     width: 100%;
-    background-color: #0f0f1a;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background-color: #F7F9FC;
+    border-bottom: 1px solid rgba(229, 231, 235, 0.95);
     display: flex;
     flex-direction: column;
 }
@@ -524,6 +521,7 @@
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
     padding: 12px 12px 24px;
+    background-color: #FFFFFF;
 }
 
 /* ── Desktop: 1024px+ ── */
@@ -539,7 +537,7 @@
         width: 52%;
         flex-shrink: 0;
         border-bottom: none;
-        border-right: 1px solid rgba(255, 255, 255, 0.06);
+        border-right: 1px solid rgba(229, 231, 235, 0.95);
         overflow-y: auto;
     }
 

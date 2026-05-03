@@ -42,11 +42,11 @@ export default function AdminVideos() {
             className="url-input max-w-sm"
           />
 
-          <div className="glass rounded-2xl border border-white/6 overflow-hidden">
+          <div className="glass rounded-2xl border border-gray-100 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-white/6">
+                  <tr className="border-b border-gray-100">
                     {['ID','User','Title','YouTube ID','Subtitles','Ngày tạo',''].map(h => (
                       <th key={h} className="px-4 py-3 text-left text-[11px] font-medium
                                              text-ghost uppercase tracking-wider whitespace-nowrap">
@@ -60,7 +60,7 @@ export default function AdminVideos() {
                     <tr><td colSpan={7} className="px-4 py-8 text-center text-ghost">Đang tải...</td></tr>
                   )}
                   {!loading && data?.items.map(v => (
-                    <tr key={v.id} className="border-b border-white/4 hover:bg-white/2 transition-colors">
+                    <tr key={v.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3 font-mono text-xs text-ghost">#{v.id}</td>
                       <td className="px-4 py-3 text-xs text-ghost">{v.username}</td>
                       <td className="px-4 py-3 max-w-[220px]">

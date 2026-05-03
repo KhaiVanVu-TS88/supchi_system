@@ -162,7 +162,7 @@ export default function PronunciationPage() {
           </div>
 
           {/* ── Input card ── */}
-          <div className="glass rounded-2xl p-5 border border-white/6 space-y-4 mb-6">
+          <div className="glass rounded-2xl p-5 border border-gray-100 space-y-4 mb-6">
 
             {/* Chữ Hán */}
             <div>
@@ -174,7 +174,7 @@ export default function PronunciationPage() {
                 onChange={e => { setInputText(e.target.value); setResult(null); setSelectedChar(null) }}
                 placeholder="VD: 你好"
                 rows={2}
-                className="w-full resize-none bg-white/5 border border-white/10 rounded-xl
+                className="w-full resize-none bg-gray-50 border border-gray-100 rounded-xl
                            px-4 py-3 text-2xl font-serif text-snow
                            placeholder:text-ghost/40 focus:outline-none
                            focus:border-amber-glow/50 transition-colors"
@@ -209,7 +209,7 @@ export default function PronunciationPage() {
                 value={inputPinyin}
                 onChange={e => { setInputPinyin(e.target.value); setResult(null) }}
                 placeholder="VD: ni3 hao3"
-                className="w-full bg-white/5 border border-white/10 rounded-xl
+                className="w-full bg-gray-50 border border-gray-100 rounded-xl
                            px-4 py-3 text-sm font-mono text-snow
                            placeholder:text-ghost/40 focus:outline-none
                            focus:border-amber-glow/50 transition-colors"
@@ -268,7 +268,7 @@ export default function PronunciationPage() {
           </div>
 
           {/* ── Ghi âm card ── */}
-          <div className="glass rounded-2xl p-5 border border-white/6 space-y-4 mb-6">
+          <div className="glass rounded-2xl p-5 border border-gray-100 space-y-4 mb-6">
             <p className="text-xs text-ghost uppercase tracking-wider">
               Ghi âm giọng nói
             </p>
@@ -324,7 +324,7 @@ export default function PronunciationPage() {
             <div className="mt-6 space-y-4 animate-slide-up">
 
               {/* Score header */}
-              <div className="glass rounded-2xl p-5 border border-white/6 text-center">
+              <div className="glass rounded-2xl p-5 border border-gray-100 text-center">
                 <p className="text-xs text-ghost uppercase tracking-wider mb-2">
                   Điểm phát âm
                 </p>
@@ -338,12 +338,12 @@ export default function PronunciationPage() {
                     <p className="text-lg font-mono text-snow">{result.text_similarity_score.toFixed(0)}</p>
                     <p className="text-[10px] text-ghost">Text</p>
                   </div>
-                  <div className="w-px bg-white/10" />
+                  <div className="w-px bg-gray-100" />
                   <div className="text-center">
                     <p className="text-lg font-mono text-snow">{result.tone_score.toFixed(0)}</p>
                     <p className="text-[10px] text-ghost">Tone</p>
                   </div>
-                  <div className="w-px bg-white/10" />
+                  <div className="w-px bg-gray-100" />
                   <div className="text-center">
                     <p className="text-lg font-mono text-snow">{result.acoustic_score.toFixed(0)}</p>
                     <p className="text-[10px] text-ghost">Acoustic</p>
@@ -360,7 +360,7 @@ export default function PronunciationPage() {
 
               {/* Syllable results — new format */}
               {'syllable_results' in result && result.syllable_results && result.syllable_results.length > 0 && (
-                <div className="glass rounded-2xl p-5 border border-white/6">
+                <div className="glass rounded-2xl p-5 border border-gray-100">
                   <p className="text-xs text-ghost uppercase tracking-wider mb-3">
                     Chi tiết từng âm tiết
                   </p>
@@ -377,7 +377,7 @@ export default function PronunciationPage() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-xs text-snow/70 font-mono">{syl.pinyin}</span>
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-ghost">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-50 text-ghost">
                               tone {syl.expected_tone}
                             </span>
                             <span className="text-[10px] text-ghost">→</span>
@@ -429,7 +429,7 @@ export default function PronunciationPage() {
 
               {/* Recognized text */}
               {result.recognized_text && (
-                <div className="glass rounded-xl px-4 py-3 border border-white/5">
+                <div className="glass rounded-xl px-4 py-3 border border-gray-100">
                   <p className="text-[11px] text-ghost mb-1">Speech-to-text nhận diện được:</p>
                   <p className="text-sm font-serif text-mist">{result.recognized_text}</p>
                 </div>
@@ -439,7 +439,7 @@ export default function PronunciationPage() {
 
           {/* ── Tips ── */}
           {!result && !error && (
-            <div className="mt-10 glass rounded-xl p-4 border border-white/5">
+            <div className="mt-10 glass rounded-xl p-4 border border-gray-100">
               <p className="text-[11px] text-ghost uppercase tracking-wider mb-2">Mẹo sử dụng</p>
               <ul className="space-y-1.5 text-sm text-mist">
                 <li className="flex gap-2"><span className="text-amber-glow">•</span>Nhấn vào từng chữ Hán để tra nghĩa nhanh</li>

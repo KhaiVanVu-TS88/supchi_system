@@ -38,7 +38,7 @@ export default function OcrPage() {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-1 p-1 glass rounded-xl mb-6 border border-white/6">
+          <div className="flex gap-1 p-1 glass rounded-xl mb-6 border border-gray-100">
             {([
               { id: 'ocr', icon: '📷', label: 'Nhận dạng từ ảnh' },
               { id: 'handwriting', icon: '✍️', label: 'Viết tay' },
@@ -61,7 +61,7 @@ export default function OcrPage() {
           {/* OCR Tab */}
           {tab === 'ocr' && (
             <div className="space-y-5">
-              <div className="glass rounded-2xl p-5 border border-white/6">
+              <div className="glass rounded-2xl p-5 border border-gray-100">
                 <OcrUploader
                   onResult={setOcrResult}
                   onLoading={setOcrLoading}
@@ -75,7 +75,7 @@ export default function OcrPage() {
           {/* Handwriting Tab */}
           {tab === 'handwriting' && (
             <div className="space-y-5">
-              <div className="glass rounded-2xl p-5 border border-white/6">
+              <div className="glass rounded-2xl p-5 border border-gray-100">
                 <HandwritingCanvas
                   onResult={setHwResult}
                   onLoading={setHwLoading}
@@ -87,7 +87,7 @@ export default function OcrPage() {
           )}
 
           {/* Tips */}
-          <div className="mt-8 glass rounded-xl p-4 border border-white/5">
+          <div className="mt-8 glass rounded-xl p-4 border border-gray-100">
             <p className="text-[11px] text-ghost uppercase tracking-wider mb-2">Mẹo sử dụng</p>
             {tab === 'ocr' ? (
               <ul className="space-y-1.5 text-sm text-mist">

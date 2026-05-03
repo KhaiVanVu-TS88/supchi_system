@@ -26,7 +26,7 @@ export default function HandwritingResult({ result }: Props) {
                 </div>
 
                 {/* Best match — lớn và rõ */}
-                <div className="text-center py-4 border-y border-white/6">
+                <div className="text-center py-4 border-y border-gray-100">
                     <button
                         onClick={e => setPopup({ word: result.best, rect: (e.target as HTMLElement).getBoundingClientRect() })}
                         className="font-serif text-6xl text-snow hover:text-amber-glow transition-colors"
@@ -50,7 +50,7 @@ export default function HandwritingResult({ result }: Props) {
                                     onClick={e => setPopup({ word: c, rect: (e.target as HTMLElement).getBoundingClientRect() })}
                                     className="flex flex-col items-center gap-1 p-2 glass rounded-xl
                              hover:bg-amber-glow/10 hover:border-amber-glow/30 transition-colors
-                             border border-white/6 min-w-[56px]"
+                             border border-gray-100 min-w-[56px]"
                                 >
                                     <span className="font-serif text-xl text-snow">{c}</span>
                                     <span className="text-[10px] text-amber-glow font-mono">{result.pinyin[i]}</span>

@@ -55,7 +55,7 @@
 //   return (
 //     <>
 //       <header className="flex-shrink-0 sticky top-0 z-40
-//                          bg-ink-900/90 backdrop-blur-xl border-b border-white/6">
+//                          bg-ink-900/90 backdrop-blur-xl border-b border-gray-100">
 //         <div className="pt-safe" />
 
 //         <div className="h-14 px-3 sm:px-5 flex items-center justify-between gap-3
@@ -87,7 +87,7 @@
 //                   className={`flex items-center gap-1.5 text-[13px] font-medium px-3 py-2
 //                               rounded-lg transition-colors whitespace-nowrap min-h-[40px] ${active
 //                       ? 'bg-amber-glow/15 text-amber-glow'
-//                       : 'text-ghost hover:text-snow hover:bg-white/5'
+//                       : 'text-ghost hover:text-snow hover:bg-gray-100'
 //                     }`}
 //                   aria-current={active ? 'page' : undefined}>
 //                   <span aria-hidden>{link.icon}</span>
@@ -115,7 +115,7 @@
 //                 <button
 //                   onClick={logout}
 //                   className="hidden sm:flex p-2 rounded-lg text-ghost hover:text-red-400
-//                              hover:bg-white/5 transition-colors min-w-[40px] min-h-[40px]
+//                              hover:bg-gray-100 transition-colors min-w-[40px] min-h-[40px]
 //                              items-center justify-center"
 //                   aria-label="Đăng xuất">
 //                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
@@ -147,7 +147,7 @@
 //               <button
 //                 onClick={() => setMenuOpen(o => !o)}
 //                 className="w-10 h-10 flex flex-col items-center justify-center gap-[5px]
-//                            rounded-xl glass border border-white/8 active:bg-white/10
+//                            rounded-xl glass border border-gray-100 active:bg-gray-100
 //                            transition-colors"
 //                 aria-label={menuOpen ? 'Đóng menu' : 'Mở menu'}
 //                 aria-expanded={menuOpen}
@@ -166,12 +166,12 @@
 //               {/* ── Dropdown Menu ── */}
 //               {menuOpen && (
 //                 <div className="absolute right-0 top-[calc(100%+8px)] w-56
-//                                 glass border border-white/10 rounded-2xl shadow-2xl
+//                                 glass border border-gray-100 rounded-2xl shadow-2xl
 //                                 overflow-hidden animate-fade-in z-50">
 
 //                   {/* User info — top của menu nếu đã đăng nhập */}
 //                   {user && (
-//                     <div className="px-4 py-3 border-b border-white/6 flex items-center gap-2.5">
+//                     <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2.5">
 //                       <div className="w-8 h-8 rounded-full bg-amber-glow/20 flex items-center
 //                                       justify-center text-amber-glow text-sm font-bold flex-shrink-0">
 //                         {user.username[0].toUpperCase()}
@@ -192,7 +192,7 @@
 //                           className={`flex items-center gap-3 px-4 py-3.5 text-sm
 //                                       transition-colors min-h-[52px] ${active
 //                               ? 'bg-amber-glow/10 text-amber-glow'
-//                               : 'text-mist active:bg-white/5'
+//                               : 'text-mist active:bg-gray-100'
 //                             }`}>
 //                           <span className="text-lg w-6 text-center" aria-hidden>{link.icon}</span>
 //                           <span className="font-medium">{link.label}</span>
@@ -205,12 +205,12 @@
 //                   </div>
 
 //                   {/* Auth actions */}
-//                   <div className="border-t border-white/6 py-1">
+//                   <div className="border-t border-gray-100 py-1">
 //                     {user ? (
 //                       <button
 //                         onClick={() => { logout(); setMenuOpen(false) }}
 //                         className="w-full flex items-center gap-3 px-4 py-3.5 text-sm
-//                                    text-ghost active:bg-white/5 transition-colors min-h-[52px]">
+//                                    text-ghost active:bg-gray-100 transition-colors min-h-[52px]">
 //                         <svg className="w-6 text-center flex-shrink-0" width="16" height="16"
 //                           viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
 //                           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -223,7 +223,7 @@
 //                       <>
 //                         <Link href="/auth/login"
 //                           className="flex items-center gap-3 px-4 py-3.5 text-sm text-mist
-//                                      active:bg-white/5 min-h-[52px]">
+//                                      active:bg-gray-100 min-h-[52px]">
 //                           <svg className="w-6 flex-shrink-0" width="16" height="16"
 //                             viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
 //                             <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
@@ -313,7 +313,7 @@ export default function Navbar() {
   return (
     <>
       <header className="flex-shrink-0 sticky top-0 z-40
-                         bg-ink-900/90 backdrop-blur-xl border-b border-white/6">
+                         bg-white/85 backdrop-blur-xl border-b border-gray-100 shadow-edu">
         <div className="pt-safe" />
 
         <div className="h-14 px-3 sm:px-5 flex items-center justify-between gap-3
@@ -345,7 +345,7 @@ export default function Navbar() {
                   className={`flex items-center gap-1.5 text-[13px] font-medium px-3 py-2
                               rounded-lg transition-colors whitespace-nowrap min-h-[40px] ${active
                       ? 'bg-amber-glow/15 text-amber-glow'
-                      : 'text-ghost hover:text-snow hover:bg-white/5'
+                      : 'text-ghost hover:text-snow hover:bg-gray-100'
                     }`}
                   aria-current={active ? 'page' : undefined}>
                   <span aria-hidden>{link.icon}</span>
@@ -387,7 +387,7 @@ export default function Navbar() {
                 <button
                   onClick={logout}
                   className="hidden sm:flex p-2 rounded-lg text-ghost hover:text-red-400
-                             hover:bg-white/5 transition-colors min-w-[40px] min-h-[40px]
+                             hover:bg-gray-100 transition-colors min-w-[40px] min-h-[40px]
                              items-center justify-center"
                   aria-label="Đăng xuất">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
@@ -419,7 +419,7 @@ export default function Navbar() {
               <button
                 onClick={() => setMenuOpen(o => !o)}
                 className="w-10 h-10 flex flex-col items-center justify-center gap-[5px]
-                           rounded-xl glass border border-white/8 active:bg-white/10
+                           rounded-xl glass border border-gray-100 active:bg-gray-100
                            transition-colors"
                 aria-label={menuOpen ? 'Đóng menu' : 'Mở menu'}
                 aria-expanded={menuOpen}
@@ -438,12 +438,12 @@ export default function Navbar() {
               {/* ── Dropdown Menu ── */}
               {menuOpen && (
                 <div className="absolute right-0 top-[calc(100%+8px)] w-56
-                                glass border border-white/10 rounded-2xl shadow-2xl
+                                glass border border-gray-100 rounded-2xl shadow-2xl
                                 overflow-hidden animate-fade-in z-50">
 
                   {/* User info — top của menu nếu đã đăng nhập */}
                   {user && (
-                    <div className="px-4 py-3 border-b border-white/6 flex items-center gap-2.5">
+                    <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-full bg-amber-glow/20 flex items-center
                                       justify-center text-amber-glow text-sm font-bold flex-shrink-0">
                         {user.username[0].toUpperCase()}
@@ -464,7 +464,7 @@ export default function Navbar() {
                           className={`flex items-center gap-3 px-4 py-3.5 text-sm
                                       transition-colors min-h-[52px] ${active
                               ? 'bg-amber-glow/10 text-amber-glow'
-                              : 'text-mist active:bg-white/5'
+                              : 'text-mist active:bg-gray-100'
                             }`}>
                           <span className="text-lg w-6 text-center" aria-hidden>{link.icon}</span>
                           <span className="font-medium">{link.label}</span>
@@ -477,7 +477,7 @@ export default function Navbar() {
                   </div>
 
                   {/* Auth actions */}
-                  <div className="border-t border-white/6 py-1">
+                  <div className="border-t border-gray-100 py-1">
                     {user ? (
                       <>
                         {/* Admin link in dropdown — // NOTE: /admin page removed
@@ -485,7 +485,7 @@ export default function Navbar() {
                           <Link href="/admin"
                             className="flex items-center gap-3 px-4 py-3.5 text-sm
                                        text-amber-glow active:bg-amber-glow/10 min-h-[52px]
-                                       font-medium border-b border-white/6">
+                                       font-medium border-b border-gray-100">
                             <svg className="w-6 flex-shrink-0" width="16" height="16"
                               viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
@@ -496,7 +496,7 @@ export default function Navbar() {
                         <button
                           onClick={() => { logout(); setMenuOpen(false) }}
                           className="w-full flex items-center gap-3 px-4 py-3.5 text-sm
-                                     text-ghost active:bg-white/5 transition-colors min-h-[52px]">
+                                     text-ghost active:bg-gray-100 transition-colors min-h-[52px]">
                           <svg className="w-6 text-center flex-shrink-0" width="16" height="16"
                             viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -510,7 +510,7 @@ export default function Navbar() {
                       <>
                         <Link href="/auth/login"
                           className="flex items-center gap-3 px-4 py-3.5 text-sm text-mist
-                                     active:bg-white/5 min-h-[52px]">
+                                     active:bg-gray-100 min-h-[52px]">
                           <svg className="w-6 flex-shrink-0" width="16" height="16"
                             viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />

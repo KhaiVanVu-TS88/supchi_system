@@ -6,7 +6,7 @@ import UrlInput from '../components/UrlInput'
 import VideoPlayer from '../components/VideoPlayer'
 import SubtitlePanel from '../components/SubtitlePanel'
 import JobStatusBar from '../components/JobStatusBar'
-import { videosApi, type VideoDetail, type SubtitleItem } from '../lib/api'
+import { videosApi, type AnalyzeJobResponse, type VideoDetail, type SubtitleItem } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
 import type { Subtitle } from '../types/subtitle'
 
@@ -17,7 +17,7 @@ function toSubtitle(s: SubtitleItem): Subtitle {
     }
 }
 
-type Stage = 'idle' | 'queued' | 'transitioning' | 'result' | 'error'
+type Stage = 'idle' | 'checking' | 'queued' | 'transitioning' | 'result' | 'error'
 
 export default function HomePage() {
     const { user } = useAuth()
@@ -28,15 +28,27 @@ export default function HomePage() {
     const [isPaused, setIsPaused] = useState(false)
     const [errorMsg, setErrorMsg] = useState<string | null>(null)
     const [evictedVideos, setEvictedVideos] = useState<string[]>([])
+    const [longVideoPrompt, setLongVideoPrompt] = useState<{ url: string; payload: AnalyzeJobResponse } | null>(null)
     const subtitleRef = useRef<HTMLDivElement>(null)
 
-    const handleAnalyze = useCallback(async (url: string) => {
+    const handleAnalyze = useCallback(async (url: string, confirmLongVideo = false) => {
         if (!user) { window.location.href = '/auth/login'; return }
-        setStage('queued'); setErrorMsg(null); setResult(null); setJobId(null)
+        setErrorMsg(null)
+        if (!confirmLongVideo) {
+            setLongVideoPrompt(null)
+            setResult(null)
+            setJobId(null)
+        }
+        setStage('checking')
         try {
-            const response = await videosApi.analyze(url)
+            const response = await videosApi.analyze(url, undefined, confirmLongVideo)
 
-            // Hiển thị thông báo nếu có video bị xóa tự động
+            if (response.source === 'confirmation_required') {
+                setStage('idle')
+                setLongVideoPrompt({ url, payload: response })
+                return
+            }
+
             if (response.evicted_videos && response.evicted_videos.length > 0) {
                 setEvictedVideos(response.evicted_videos)
             }
@@ -58,11 +70,13 @@ export default function HomePage() {
 
             if (response.source === 'processing' && response.job_id) {
                 setJobId(response.job_id)
+                setStage('queued')
                 return
             }
 
             if (response.job_id) {
                 setJobId(response.job_id)
+                setStage('queued')
             } else {
                 throw new Error('Không nhận được job ID.')
             }
@@ -107,10 +121,10 @@ export default function HomePage() {
                     <Navbar />
                     <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-8">
 
-                        {stage === 'idle' && (
+                        {(stage === 'idle' || stage === 'checking') && (
                             <div className="w-full max-w-xl flex flex-col items-center animate-fade-in">
                                 <div className="font-serif text-[5rem] sm:text-[8rem] font-bold leading-none
-                                bg-gradient-to-b from-snow/20 to-snow/0 bg-clip-text
+                                bg-gradient-to-b from-amber-glow/35 via-amber-glow/15 to-transparent bg-clip-text
                                 text-transparent select-none mb-3 sm:mb-5" aria-hidden>
                                     學
                                 </div>
@@ -123,14 +137,14 @@ export default function HomePage() {
                                 <div className="flex flex-wrap justify-center gap-2 mb-8">
                                     {['🎬 Video YouTube', '📖 Từ điển'].map(f => (
                                         <span key={f} className="text-xs px-3 py-1.5 glass rounded-full
-                                             text-ghost border border-white/6">{f}</span>
+                                             text-ghost border border-gray-100">{f}</span>
                                     ))}
                                     {/* // NOTE: OCR and Handwriting features removed
                                         '🔍 OCR ảnh', '✍️ Viết tay'
                                     */}
                                 </div>
                                 {!user ? (
-                                    <div className="w-full glass rounded-2xl p-6 sm:p-8 text-center border border-white/8">
+                                    <div className="w-full glass rounded-2xl p-6 sm:p-8 text-center border border-gray-100">
                                         <div className="text-4xl mb-3">🔐</div>
                                         <p className="text-snow font-semibold mb-1.5">Cần đăng nhập để sử dụng</p>
                                         <p className="text-ghost text-sm mb-6">
@@ -149,9 +163,67 @@ export default function HomePage() {
                                     </div>
                                 ) : (
                                     <div className="w-full">
-                                        <UrlInput onAnalyze={handleAnalyze} isLoading={false} />
+                                        <UrlInput onAnalyze={u => { handleAnalyze(u) }} isLoading={stage === 'checking'} />
                                     </div>
                                 )}
+                            </div>
+                        )}
+
+                        {longVideoPrompt && (
+                            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+                                <div
+                                    role="dialog"
+                                    aria-modal="true"
+                                    aria-labelledby="long-video-title"
+                                    className="w-full max-w-md glass rounded-2xl border border-amber-glow/25 p-5 sm:p-6 shadow-2xl"
+                                >
+                                    <h2 id="long-video-title" className="text-snow font-semibold text-lg mb-2">
+                                        Video khá dài
+                                    </h2>
+                                    <p className="text-mist text-sm leading-relaxed mb-3">
+                                        {longVideoPrompt.payload.message}
+                                    </p>
+                                    <ul className="text-xs text-ghost space-y-1.5 mb-5 border border-gray-100 rounded-xl px-3 py-2.5 bg-gray-50">
+                                        <li>
+                                            Độ dài ước lượng:{' '}
+                                            <span className="text-amber-glow font-mono">
+                                                {longVideoPrompt.payload.duration_minutes != null
+                                                    ? `${longVideoPrompt.payload.duration_minutes} phút`
+                                                    : '—'}
+                                            </span>
+                                        </li>
+                                        <li>
+                                            Ngưỡng cảnh báo:{' '}
+                                            <span className="text-snow">{longVideoPrompt.payload.threshold_minutes ?? '—'} phút</span>
+                                        </li>
+                                        <li>
+                                            Cách xử lý dự kiến:{' '}
+                                            {longVideoPrompt.payload.subtitle_route === 'manual'
+                                                ? 'Phụ đề có sẵn (YouTube)'
+                                                : 'Nhận dạng giọng Whisper (lâu hơn)'}
+                                        </li>
+                                    </ul>
+                                    <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+                                        <button
+                                            type="button"
+                                            className="px-4 py-2.5 rounded-xl text-sm text-mist hover:text-snow hover:bg-gray-100 transition-colors min-h-[44px]"
+                                            onClick={() => setLongVideoPrompt(null)}
+                                        >
+                                            Chọn video khác
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="btn-primary px-4 py-2.5 text-sm min-h-[44px]"
+                                            onClick={() => {
+                                                const u = longVideoPrompt.url
+                                                setLongVideoPrompt(null)
+                                                handleAnalyze(u, true)
+                                            }}
+                                        >
+                                            Tiếp tục chờ xử lý
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         )}
 
@@ -266,7 +338,7 @@ export default function HomePage() {
                         {/* ── LEFT: VIDEO ── */}
                         <div className="flex-shrink-0 w-full lg:w-[52%]
                             flex flex-col
-                            border-b-2 border-white/6 lg:border-b-0 lg:border-r-2 lg:border-r-white/6">
+                            border-b-2 border-gray-100 lg:border-b-0 lg:border-r-2 lg:border-r-gray-100">
 
                             {/* Video player */}
                             <VideoPlayer
@@ -278,7 +350,7 @@ export default function HomePage() {
 
                             {/* Toolbar mobile */}
                             <div className="lg:hidden flex items-center gap-2 px-3 py-2
-                              bg-ink-900 border-b border-white/6 flex-shrink-0">
+                              bg-ink-900 border-b border-gray-100 flex-shrink-0">
                                 <span className="flex items-center gap-1.5 text-xs text-ghost">
                                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
                                         stroke="currentColor" strokeWidth="2">
@@ -290,12 +362,12 @@ export default function HomePage() {
                                 <button
                                     onClick={() => { setResult(null); setStage('idle') }}
                                     className="text-[11px] text-ghost active:text-amber-glow flex items-center
-                             gap-1 px-2.5 py-1.5 glass rounded-lg border border-white/8">
+                             gap-1 px-2.5 py-1.5 glass rounded-lg border border-gray-100">
                                     + Video khác
                                 </button>
                                 <Link href="/history"
                                     className="text-[11px] text-ghost active:text-jade flex items-center
-                             gap-1 px-2.5 py-1.5 glass rounded-lg border border-white/8">
+                             gap-1 px-2.5 py-1.5 glass rounded-lg border border-gray-100">
                                     Lịch sử
                                 </Link>
                             </div>
@@ -315,7 +387,7 @@ export default function HomePage() {
                                         Lịch sử
                                     </Link>
                                 </div>
-                                <UrlInput onAnalyze={handleAnalyze} isLoading={false} />
+                                <UrlInput onAnalyze={u => { handleAnalyze(u) }} isLoading={false} />
                             </div>
                         </div>
 

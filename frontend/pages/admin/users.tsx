@@ -76,11 +76,11 @@ export default function AdminUsers() {
           </div>
 
           {/* Table */}
-          <div className="glass rounded-2xl border border-white/6 overflow-hidden">
+          <div className="glass rounded-2xl border border-gray-100 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-white/6">
+                  <tr className="border-b border-gray-100">
                     {['ID','Username','Email','Role','Trạng thái','Videos','Jobs','Ngày tạo',''].map(h => (
                       <th key={h} className="px-4 py-3 text-left text-[11px] font-medium
                                              text-ghost uppercase tracking-wider whitespace-nowrap">
@@ -96,7 +96,7 @@ export default function AdminUsers() {
                     </td></tr>
                   )}
                   {!loading && data?.items.map(u => (
-                    <tr key={u.id} className="border-b border-white/4 hover:bg-white/2 transition-colors">
+                    <tr key={u.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3 font-mono text-xs text-ghost">#{u.id}</td>
                       <td className="px-4 py-3 font-medium text-snow">{u.username}</td>
                       <td className="px-4 py-3 text-ghost text-xs">{u.email}</td>
@@ -110,12 +110,12 @@ export default function AdminUsers() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
                           <button onClick={() => handleToggleActive(u)}
-                            className="px-2 py-1 text-[11px] glass rounded border border-white/8
+                            className="px-2 py-1 text-[11px] glass rounded border border-gray-100
                                        text-ghost hover:text-snow transition-colors">
                             {u.is_active ? 'Khoá' : 'Mở'}
                           </button>
                           <button onClick={() => handleSetAdmin(u)}
-                            className="px-2 py-1 text-[11px] glass rounded border border-white/8
+                            className="px-2 py-1 text-[11px] glass rounded border border-gray-100
                                        text-ghost hover:text-amber-glow transition-colors">
                             {u.role === 'admin' ? '→User' : '→Admin'}
                           </button>

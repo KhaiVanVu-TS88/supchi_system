@@ -82,9 +82,9 @@ export default function AdminDashboard() {
 
               {/* Job health bar */}
               {stats.total_jobs > 0 && (
-                <div className="glass rounded-2xl p-5 border border-white/6">
+                <div className="glass rounded-2xl p-5 border border-gray-100">
                   <p className="text-xs text-ghost mb-3">Tỉ lệ thành công</p>
-                  <div className="h-3 bg-white/6 rounded-full overflow-hidden flex">
+                  <div className="h-3 bg-gray-100 rounded-full overflow-hidden flex">
                     <div className="h-full bg-jade/70 transition-all"
                       style={{ width: `${(stats.jobs_done / stats.total_jobs) * 100}%` }}/>
                     <div className="h-full bg-amber-glow/70 transition-all"

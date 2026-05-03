@@ -21,12 +21,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* ── Sidebar ── */}
       <aside className={`flex-shrink-0 flex flex-col
-                         bg-ink-900 border-r border-white/6
+                         bg-ink-900 border-r border-gray-100
                          transition-all duration-200
                          ${collapsed ? 'w-14' : 'w-52'}`}>
 
         {/* Logo */}
-        <div className="h-14 flex items-center gap-2.5 px-4 border-b border-white/6">
+        <div className="h-14 flex items-center gap-2.5 px-4 border-b border-gray-100">
           <span className="text-xl flex-shrink-0">🈶</span>
           {!collapsed && (
             <div className="min-w-0">
@@ -60,7 +60,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                             text-sm font-medium transition-colors
                             ${active
                               ? 'bg-amber-glow/15 text-amber-glow'
-                              : 'text-ghost hover:text-snow hover:bg-white/5'
+                              : 'text-ghost hover:text-snow hover:bg-gray-100'
                             }`}
                 title={collapsed ? item.label : undefined}
               >
@@ -72,10 +72,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </nav>
 
         {/* Back to app */}
-        <div className="p-2 border-t border-white/6">
+        <div className="p-2 border-t border-gray-100">
           <Link href="/"
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm
-                       text-ghost hover:text-snow hover:bg-white/5 transition-colors"
+                       text-ghost hover:text-snow hover:bg-gray-100 transition-colors"
             title={collapsed ? 'Về trang chính' : undefined}
           >
             <svg className="flex-shrink-0" width="16" height="16" viewBox="0 0 24 24"
@@ -91,13 +91,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Topbar */}
         <header className="h-14 flex-shrink-0 flex items-center justify-between
-                           px-6 border-b border-white/6 bg-ink-900/60 backdrop-blur">
+                           px-6 border-b border-gray-100 bg-ink-900/60 backdrop-blur">
           <h1 className="text-sm font-semibold text-snow">
             {NAV.find(n => n.href === '/admin'
               ? router.pathname === '/admin'
               : router.pathname.startsWith(n.href))?.label ?? 'Admin'}
           </h1>
-          <span className="text-xs text-ghost glass px-2.5 py-1 rounded-lg border border-white/8">
+          <span className="text-xs text-ghost glass px-2.5 py-1 rounded-lg border border-gray-100">
             Admin
           </span>
         </header>

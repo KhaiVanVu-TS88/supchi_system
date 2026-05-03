@@ -128,10 +128,10 @@ export default function OcrUploader({ onResult, onLoading, isLoading }: Props) {
           <div className="absolute bottom-3 inset-x-0 flex justify-center gap-3">
             <button
               onClick={capturePhoto}
-              className="w-14 h-14 rounded-full bg-white flex items-center justify-center shadow-lg
-                         hover:bg-gray-100 transition-colors"
+              className="w-14 h-14 rounded-full bg-white flex items-center justify-center shadow-edu-md
+                         border border-gray-200 hover:border-amber-glow/40 transition-all duration-200"
             >
-              <div className="w-10 h-10 rounded-full border-4 border-gray-800" />
+              <div className="w-10 h-10 rounded-full border-4 border-gray-300" />
             </button>
             <button
               onClick={stopCamera}
@@ -175,7 +175,7 @@ export default function OcrUploader({ onResult, onLoading, isLoading }: Props) {
             onClick={() => fileInputRef.current?.click()}
             disabled={isLoading}
             className="flex flex-col items-center gap-2 p-4 glass rounded-xl
-                       hover:bg-white/8 transition-colors disabled:opacity-50 border border-white/6"
+                       hover:bg-gray-100 transition-colors disabled:opacity-50 border border-gray-100"
           >
             <svg className="text-amber-glow" width="24" height="24" viewBox="0 0 24 24"
               fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -192,7 +192,7 @@ export default function OcrUploader({ onResult, onLoading, isLoading }: Props) {
             onClick={startCamera}
             disabled={isLoading}
             className="flex flex-col items-center gap-2 p-4 glass rounded-xl
-                       hover:bg-white/8 transition-colors disabled:opacity-50 border border-white/6"
+                       hover:bg-gray-100 transition-colors disabled:opacity-50 border border-gray-100"
           >
             <svg className="text-amber-glow" width="24" height="24" viewBox="0 0 24 24"
               fill="none" stroke="currentColor" strokeWidth="1.5">

@@ -2,10 +2,9 @@
 pipeline/orchestrator.py — Pipeline Orchestrator v3
 
 Điều phối toàn bộ pipeline theo thứ tự:
-  1. HybridSubtitleExtractor  → lấy text tiếng Trung
-  2. LLMPostProcessor         → cải thiện text (optional)
-  3. PinyinConverter          → thêm pinyin
-  4. Translator               → dịch tiếng Việt
+  1. HybridSubtitleExtractor → lấy text tiếng Trung (caption hoặc Whisper)
+  2. PinyinConverter         → thêm pinyin
+  3. Translator              → dịch tiếng Việt
 
 Nhận progress_callback để cập nhật tiến trình lên DB.
 """
@@ -14,7 +13,6 @@ from typing import Callable, Optional
 
 from pipeline.subtitle_extractor import check_youtube_captions
 from pipeline.whisper_engine import transcribe_audio
-from pipeline.llm_processor import post_process_subtitles, is_llm_available
 from pipeline.adapters import add_pinyin, translate_subtitles
 from pipeline.youtube import download_audio
 
@@ -70,14 +68,9 @@ def run_pipeline(
     if not raw_subtitles:
         raise ValueError("Không nhận dạng được nội dung trong video.")
 
-    # ── Bước 2: LLM post-processing (optional) ──
+    # ── Bước 2: Pinyin (không dùng LLM / Claude) ──
     llm_used = False
-    if is_llm_available():
-        progress(55, "Cải thiện văn bản (AI)...")
-        raw_subtitles = post_process_subtitles(raw_subtitles)
-        llm_used = True
-    else:
-        progress(55, "Bỏ qua LLM (không có API key)...")
+    progress(55, "Chuẩn bị xử lý văn bản...")
 
     # ── Bước 3: Pinyin ──
     progress(65, "Tạo Pinyin...")

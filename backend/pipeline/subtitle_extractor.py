@@ -13,8 +13,9 @@ Tại sao không dùng auto-generated captions?
   - Whisper cho kết quả tốt hơn trong hầu hết trường hợp
 """
 import logging
+import os
 import re
-from typing import Optional
+from typing import Optional, Tuple
 import yt_dlp
 
 logger = logging.getLogger(__name__)
@@ -214,3 +215,49 @@ def _vtt_time_to_sec(t: str) -> float:
     parts = t.split(":")
     h, m, s = int(parts[0]), int(parts[1]), float(parts[2])
     return h * 3600 + m * 60 + s
+
+
+def peek_video_duration_and_subtitle_route(url: str) -> Tuple[Optional[float], str]:
+    """
+    Một lần extract_info (không tải file): độ dài video + có phụ đề tay tiếng Trung hay không.
+
+    Returns:
+        (duration_seconds hoặc None nếu không biết, "manual" | "whisper")
+    """
+    proxy = (
+        os.getenv("HTTPS_PROXY")
+        or os.getenv("HTTP_PROXY")
+        or os.getenv("https_proxy")
+        or os.getenv("http_proxy")
+    )
+    ydl_opts = {
+        "quiet": True,
+        "no_warnings": True,
+        "skip_download": True,
+        "writesubtitles": False,
+        "writeautomaticsub": False,
+        "http_headers": {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/120.0.0.0 Safari/537.36"
+            ),
+            "Accept-Language": "en-US,en;q=0.9",
+        },
+        "extractor_args": {"youtube": {"player_client": ["android", "web"]}},
+    }
+    if proxy:
+        ydl_opts["proxy"] = proxy
+
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+    except Exception as e:
+        logger.warning(f"peek_video_duration_and_subtitle_route failed: {e}")
+        return None, "whisper"
+
+    raw_dur = info.get("duration")
+    dur_sec = float(raw_dur) if raw_dur is not None else None
+    manual = _find_chinese_captions(info.get("subtitles") or {})
+    route = "manual" if manual else "whisper"
+    return dur_sec, route

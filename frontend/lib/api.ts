@@ -56,8 +56,15 @@ export const authApi = {
 }
 
 export const videosApi = {
-  analyze: (url: string, title?: string) =>
-    request<AnalyzeJobResponse>('/api/videos/analyze', { method: 'POST', body: JSON.stringify({ url, title }) }),
+  analyze: (url: string, title?: string, confirmLongVideo?: boolean) =>
+    request<AnalyzeJobResponse>('/api/videos/analyze', {
+      method: 'POST',
+      body: JSON.stringify({
+        url,
+        ...(title !== undefined && title !== '' ? { title } : {}),
+        confirm_long_video: confirmLongVideo === true,
+      }),
+    }),
   list: (skip = 0, limit = 20) => request<VideoSummary[]>(`/api/videos?skip=${skip}&limit=${limit}`),
   get: (id: number) => request<VideoDetail>(`/api/videos/${id}`),
   delete: (id: number) => request<void>(`/api/videos/${id}`, { method: 'DELETE' }),
@@ -73,20 +80,6 @@ export const dictionaryApi = {
   lookup: (word: string) => request<DictionaryEntry>(`/api/dictionary?word=${encodeURIComponent(word)}`),
   segment: (text: string) => request<{ text: string; words: string[] }>(`/api/dictionary/segment?text=${encodeURIComponent(text)}`),
   audioUrl: (filename: string) => `${BASE_URL}/api/audio/${filename}`,
-
-  // AI-enhanced dictionary
-  quickLookup: (word: string, meanings_vi: string[], definitions_en: string[]) => {
-    const params = new URLSearchParams({ word, meanings_vi: meanings_vi.join('|'), definitions_en: definitions_en.join('|') })
-    return request<DictionaryAiQuick>(`/api/dictionary/ai/quick?${params}`)
-  },
-  fullAnalysis: (word: string, pinyin: string, meanings_vi: string[], definitions_en: string[]) => {
-    const params = new URLSearchParams({ word, pinyin, meanings_vi: meanings_vi.join('|'), definitions_en: definitions_en.join('|') })
-    return request<DictionaryAiFull>(`/api/dictionary/ai/full?${params}`)
-  },
-  smartTokenize: (sentence: string, translation: string) => {
-    const params = new URLSearchParams({ sentence, translation })
-    return request<DictionaryAiToken[]>(`/api/dictionary/ai/tokenize?${params}`)
-  },
 }
 
 export const pronunciationApi = {
@@ -144,10 +137,14 @@ export interface UserInfo { id: number; username: string; email: string; role: s
 export interface AnalyzeJobResponse {
   job_id: number | null
   video_id: number | null
-  status: 'queued' | 'processing' | 'done'
+  status: 'queued' | 'processing' | 'done' | 'needs_confirmation'
   message: string
-  source: 'new' | 'cached' | 'processing'
+  source: 'new' | 'cached' | 'processing' | 'confirmation_required'
   evicted_videos?: string[]
+  duration_seconds?: number | null
+  duration_minutes?: number | null
+  threshold_minutes?: number | null
+  subtitle_route?: string | null
 }
 
 export interface JobStatus {
@@ -170,43 +167,6 @@ export interface DictionaryEntry {
   example: { zh: string; vi: string }
   audio_url: string
   definitions_en: string[]
-}
-
-// AI-enhanced dictionary response types
-export interface DictionaryAiQuick {
-  word: string
-  pinyin: string
-  han_viet: string
-  meaning_vi: string
-  quick_example: { zh: string; vi: string; context: string }
-}
-
-export interface DictionaryAiFull {
-  word: string
-  pinyin: string
-  strokes: number
-  radical: string
-  radical_info: { name: string; meaning: string; stroke_count: number }
-  decomposition: string
-  character_analysis: Array<{
-    char: string; pinyin: string; meaning: string; radical: string; strokes: number; meaning_origin: string
-  }>
-  meanings: { han_viet_goc: string; tieng_viet: string; tieng_anh: string }
-  usage: { formal: string; informal: string; written: string; spoken: string }
-  grammar_pattern: string
-  examples: Array<{ zh: string; pinyin: string; vi: string; context: string }>
-  memorization: { mnemonic: string; story: string; compare_vi: string }
-  related: { same_radical: string[]; same_topic: string[]; opposite: string[] }
-  mistakes: string[]
-  tips: string
-}
-
-export interface DictionaryAiToken {
-  word: string
-  start: number
-  end: number
-  is_clickable: boolean
-  note: string
 }
 
 export interface SyllableScore {

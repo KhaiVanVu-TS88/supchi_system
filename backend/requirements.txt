@@ -34,10 +34,6 @@ jieba==0.42.1
 edge-tts>=6.1.18          # Luôn dùng version mới nhất để tránh token expired
 gTTS==2.5.1               # Fallback TTS khi edge-tts bị block
 
-# --- LLM (optional) ---
-anthropic>=0.25.0
-
-
 # --- OCR ------
 easyocr==1.7.1
 Pillow>=10.0.0

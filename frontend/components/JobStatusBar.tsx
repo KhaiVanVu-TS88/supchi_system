@@ -100,30 +100,26 @@ export default function JobStatusBar({ jobId, onDone, onFailed }: Props) {
       </div>
 
       {/* Progress bar */}
-      <div className="h-1.5 bg-white/6 rounded-full overflow-hidden mb-4">
+      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden mb-4 shadow-inner">
         <div
           className="h-full rounded-full transition-all duration-700 ease-out"
           style={{
             width: `${progress}%`,
             background: job.status === 'failed'
-              ? 'rgb(239,68,68)'
-              : 'linear-gradient(90deg, #f5c842, #f0a855)',
+              ? '#EF4444'
+              : 'linear-gradient(90deg, #4CAF88, #6FD3A5, #A7E9C5)',
           }}
         />
       </div>
 
       {/* Meta info */}
       <div className="flex flex-wrap items-center gap-3 text-[11px] text-ghost">
-        <span className="font-mono bg-white/5 px-2 py-0.5 rounded">
+        <span className="font-mono bg-gray-50 px-2 py-0.5 rounded-lg border border-gray-100 text-mist">
           job #{job.id}
         </span>
 
         {job.subtitle_source && (
           <span>{SOURCE_LABELS[job.subtitle_source] ?? job.subtitle_source}</span>
-        )}
-
-        {job.llm_used === 'yes' && (
-          <span className="text-jade-DEFAULT">✨ LLM enhanced</span>
         )}
 
         {job.status === 'failed' && job.error_message && (
