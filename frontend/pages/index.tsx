@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react'
+import React, { useState, useCallback } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import Navbar from '../components/layout/Navbar'
@@ -30,8 +30,6 @@ export default function HomePage() {
     const [errorMsg, setErrorMsg] = useState<string | null>(null)
     const [evictedVideos, setEvictedVideos] = useState<string[]>([])
     const [longVideoPrompt, setLongVideoPrompt] = useState<{ url: string; payload: AnalyzeJobResponse } | null>(null)
-    const subtitleRef = useRef<HTMLDivElement>(null)
-
     const handleAnalyze = useCallback(async (url: string, confirmLongVideo = false) => {
         if (!user) { window.location.href = '/auth/login'; return }
         setErrorMsg(null)
@@ -61,7 +59,6 @@ export default function HomePage() {
                     videosApi.markViewed(response.video_id).catch(() => {})
                     await new Promise(r => setTimeout(r, 800))
                     setResult(video); setStage('result')
-                    setTimeout(() => subtitleRef.current?.scrollTo({ top: 0 }), 100)
                 } catch {
                     setErrorMsg('Không tải được video. Vào Lịch sử để xem.')
                     setStage('error')
@@ -95,7 +92,6 @@ export default function HomePage() {
             videosApi.markViewed(videoId).catch(() => {})
             await new Promise(r => setTimeout(r, 1200))
             setResult(video); setStage('result')
-            setTimeout(() => subtitleRef.current?.scrollTo({ top: 0 }), 100)
         } catch {
             setErrorMsg('Không thể tải kết quả. Vào Lịch sử để xem.')
             setStage('error')
@@ -391,11 +387,10 @@ export default function HomePage() {
 
                         {/* Phụ đề — dưới cùng trên mobile, cột phải trên desktop */}
                         <div
-                            ref={subtitleRef}
-                            className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain bg-sub-panel
-                                       [-webkit-overflow-scrolling:touch]"
+                            className="flex min-h-0 flex-1 flex-col overflow-hidden bg-sub-panel"
                         >
                             <SubtitlePanel
+                                key={result.video_id}
                                 subtitles={subtitles}
                                 currentTime={currentTime}
                                 isPaused={isPaused}

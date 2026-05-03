@@ -1,35 +1,19 @@
 /**
- * components/SubtitlePanel.tsx v5.3
+ * components/SubtitlePanel.tsx v7 — Danh sách đơn + center focus có điều kiện
  *
- * ⚡ PERFORMANCE OPTIMIZATIONS:
+ * - activeIndex < 0: một list phụ đề bình thường, không highlight, không auto-scroll.
+ * - activeIndex >= 0: highlight câu active; khi index đổi, nếu nằm trong “vùng giữa” thì scroll để căn card vào giữa panel.
+ * - Ngoại lệ: 2 câu đầu (0,1) và 2 câu cuối — không ép căn giữa (tránh khoảng trống).
+ * - Pause: không auto-scroll (user đọc list).
  *
- * 1. Binary search O(log n): Tìm active subtitle thay vì O(n)
- *    - Video 2000 subtitles: 11 bước thay vì 1000 bước
- *    - 60fps smooth scrolling
- *
- * 2. Memoization:
- *    - React.memo cho SubtitleRow (chỉ re-render khi data thay đổi)
- *    - useMemo cho activeIndex (stable reference)
- *
- * 3. Smart scroll:
- *    - Chỉ scroll khi active card không visible trong viewport
- *    - Tránh fight vs user scrolling thủ công
- *    - Smooth scroll đến GIỮA viewport
- *
- * 4. Pause detection:
- *    - Khi video pause, auto-scroll ngừng hoạt động
- *    - User có thể tự do explore subtitle list
- *
- * v5.3: Popup ở panel-level (ngoài card) → luôn hiển thị đúng trên màn hình
+ * Căn giữa dùng getBoundingClientRect (ổn định trên mobile).
  */
-import React, { useMemo, memo, useRef, useEffect, useCallback, useState } from 'react'
+import React, { useMemo, memo, useRef, useEffect, useLayoutEffect, useCallback, useState } from 'react'
 import type { Subtitle } from '../types/subtitle'
 import dynamic from 'next/dynamic'
 
-// Load WordPopup dynamically (tránh SSR issues)
 const WordPopup = dynamic(() => import('./dictionary/WordPopup'), { ssr: false })
 
-// ── Binary search: Tìm active index O(log n) ──
 function findActiveIndex(subtitles: Subtitle[], currentTime: number): number {
   if (!subtitles.length) return -1
 
@@ -51,28 +35,27 @@ function findActiveIndex(subtitles: Subtitle[], currentTime: number): number {
   return lo > 0 ? lo - 1 : -1
 }
 
-// ── Format time ──
 function fmtTime(seconds: number): string {
   return `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`
 }
 
-// ── Check if card is already centered in container (within tolerance) ──
-function isCardCentered(
-  card: HTMLElement,
-  container: HTMLElement,
-  tolerancePx = 3
-): boolean {
-  const containerHeight = container.clientHeight
-  const cardTop        = card.offsetTop
-  const cardHeight     = card.offsetHeight
-
-  const idealScrollTop = cardTop - (containerHeight / 2) + (cardHeight / 2)
-  const actualScrollTop = container.scrollTop
-
-  return Math.abs(actualScrollTop - idealScrollTop) <= tolerancePx
+/** Căn giữa chỉ khi có đủ câu (≥5) và index không thuộc 2 đầu / 2 cuối */
+function shouldCenterActive(activeIndex: number, n: number): boolean {
+  if (activeIndex < 0 || n < 5) return false
+  if (activeIndex <= 1) return false
+  if (activeIndex >= n - 2) return false
+  return true
 }
 
-// ── Skeleton ──
+function scrollCardToListCenter(list: HTMLElement, card: HTMLElement, behavior: ScrollBehavior = 'smooth') {
+  const lr = list.getBoundingClientRect()
+  const cr = card.getBoundingClientRect()
+  const delta = cr.top + cr.height / 2 - (lr.top + lr.height / 2)
+  const nextTop = list.scrollTop + delta
+  const maxTop = list.scrollHeight - list.clientHeight
+  list.scrollTo({ top: Math.max(0, Math.min(maxTop, nextTop)), behavior })
+}
+
 function SkeletonCard() {
   return (
     <div className="rounded-xl p-4 border border-sub-line bg-sub-card/60 space-y-3 mx-1 mb-2 shadow-sub-card">
@@ -88,26 +71,23 @@ function SkeletonCard() {
   )
 }
 
-// ── Segment Chinese text (cached) ──
 const segmentCache = new Map<string, string[]>()
 
 async function segmentChinese(text: string): Promise<string[]> {
-    if (segmentCache.has(text)) return segmentCache.get(text)!
-    try {
-        const res = await fetch(`/api/dictionary/segment?text=${encodeURIComponent(text)}`)
-        if (res.ok) {
-            const data = await res.json()
-            segmentCache.set(text, data.words)
-            return data.words
-        }
-    } catch { }
-    // Fallback: tách từng ký tự
-    const chars = Array.from(text).filter(c => c.trim())
-    segmentCache.set(text, chars)
-    return chars
+  if (segmentCache.has(text)) return segmentCache.get(text)!
+  try {
+    const res = await fetch(`/api/dictionary/segment?text=${encodeURIComponent(text)}`)
+    if (res.ok) {
+      const data = await res.json()
+      segmentCache.set(text, data.words)
+      return data.words
+    }
+  } catch { /* empty */ }
+  const chars = Array.from(text).filter(c => c.trim())
+  segmentCache.set(text, chars)
+  return chars
 }
 
-// ── Props interface ──
 interface SubtitleRowProps {
   subtitle: Subtitle
   isActive: boolean
@@ -115,22 +95,18 @@ interface SubtitleRowProps {
   onWordClick: (word: string) => void
 }
 
-// ── Single subtitle row (MEMOIZED) ──
 const SubtitleRow = memo<SubtitleRowProps>(function SubtitleRow({ subtitle, isActive, onClick, onWordClick }) {
   const [segmented, setSegmented] = useState<string[] | null>(null)
 
-  // Segment Chinese text khi mount
   useEffect(() => {
-    setSegmented(null) // reset trước
+    setSegmented(null)
     segmentChinese(subtitle.chinese).then(setSegmented)
   }, [subtitle.chinese])
 
-  // Click vào card → seek video
   const handleCardClick = useCallback(() => {
     onClick()
   }, [onClick])
 
-  // Click vào từ Hán → mở popup (truyền word lên panel)
   const handleWordClick = useCallback((e: React.MouseEvent, word: string) => {
     e.stopPropagation()
     e.preventDefault()
@@ -160,7 +136,6 @@ const SubtitleRow = memo<SubtitleRowProps>(function SubtitleRow({ subtitle, isAc
         <span>{fmtTime(subtitle.end)}</span>
       </p>
 
-      {/* Chữ Hán — clickable words */}
       <div className="font-serif text-lg text-sub-ink mb-1 leading-relaxed flex flex-wrap gap-x-0.5">
         {segmented
           ? segmented.map((word, i) => (
@@ -186,12 +161,10 @@ const SubtitleRow = memo<SubtitleRowProps>(function SubtitleRow({ subtitle, isAc
   )
 })
 
-// ── Main component ──
 interface SubtitlePanelProps {
   subtitles: Subtitle[]
   currentTime: number
   onSeek: (time: number) => void
-  /** Video đang pause → tạm ngừng auto-scroll để user tự do explore */
   isPaused?: boolean
 }
 
@@ -201,82 +174,76 @@ export default function SubtitlePanel({
   onSeek,
   isPaused = false,
 }: SubtitlePanelProps) {
-  const listRef      = useRef<HTMLDivElement>(null)
-  const prevIndexRef = useRef<number>(-1)
-  const isUserScrolling = useRef(false)
-  const scrollResumeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const listRef = useRef<HTMLDivElement>(null)
+  const prevActiveRef = useRef<number>(-2)
+  const prevPausedRef = useRef(isPaused)
 
-  // Popup state — ở LEVEL PANEL (không phải row)
   const [popupWord, setPopupWord] = useState<string | null>(null)
 
-  // ⚡ Binary search O(log n)
   const activeIndex = useMemo(
     () => findActiveIndex(subtitles, currentTime),
-    [subtitles, currentTime]
+    [subtitles, currentTime],
   )
 
-  // Mở popup khi click từ
+  const subsKey = useMemo(
+    () =>
+      subtitles.length
+        ? `${subtitles[0].start}-${subtitles[subtitles.length - 1].end}-${subtitles.length}`
+        : '',
+    [subtitles],
+  )
+
   const handleWordClick = useCallback((word: string) => {
     setPopupWord(word)
   }, [])
 
-  // Đóng popup
   const handleClosePopup = useCallback(() => {
     setPopupWord(null)
   }, [])
 
-  /**
-   * Auto-scroll: active subtitle LUÔN nằm ở GIỮA viewport.
-   */
-  useEffect(() => {
-    if (activeIndex < 0) return
-    if (activeIndex === prevIndexRef.current) return
-    if (isPaused) return
-    if (isUserScrolling.current) return
+  const prevSubsKeyRef = useRef('')
+
+  useLayoutEffect(() => {
+    if (subsKey !== prevSubsKeyRef.current) {
+      prevSubsKeyRef.current = subsKey
+      prevActiveRef.current = -2
+    }
+
+    if (activeIndex < 0) {
+      prevActiveRef.current = activeIndex
+      prevPausedRef.current = isPaused
+      return
+    }
+
+    const resumed = prevPausedRef.current && !isPaused
+    prevPausedRef.current = isPaused
+
+    if (isPaused && !resumed) {
+      prevActiveRef.current = activeIndex
+      return
+    }
+
+    const n = subtitles.length
+    if (!shouldCenterActive(activeIndex, n)) {
+      prevActiveRef.current = activeIndex
+      return
+    }
+
+    const indexChanged = activeIndex !== prevActiveRef.current
+    if (!indexChanged && !resumed) return
+
+    prevActiveRef.current = activeIndex
 
     const list = listRef.current
     if (!list) return
 
     const items = list.querySelectorAll<HTMLElement>('[data-subtitle-card]')
-    const card  = items[activeIndex]
+    const card = items[activeIndex]
     if (!card) return
 
-    if (isCardCentered(card, list)) return
+    scrollCardToListCenter(list, card, 'smooth')
+  }, [activeIndex, isPaused, subsKey])
 
-    prevIndexRef.current = activeIndex
-
-    const containerHeight = list.clientHeight
-    const cardTop         = card.offsetTop
-    const cardHeight      = card.offsetHeight
-
-    const targetScrollTop = cardTop - (containerHeight / 2) + (cardHeight / 2)
-
-    list.scrollTo({ top: targetScrollTop, behavior: 'smooth' })
-  }, [activeIndex, isPaused])
-
-  const handleScroll = useCallback(() => {
-    if (!isUserScrolling.current) {
-      isUserScrolling.current = true
-    }
-
-    if (scrollResumeTimer.current) {
-      clearTimeout(scrollResumeTimer.current)
-    }
-
-    scrollResumeTimer.current = setTimeout(() => {
-      isUserScrolling.current = false
-    }, 0)
-  }, [])
-
-  useEffect(() => {
-    return () => {
-      if (scrollResumeTimer.current) {
-        clearTimeout(scrollResumeTimer.current)
-      }
-    }
-  }, [])
-
-  // Loading state
   if (!subtitles.length) {
     return (
       <div className="flex h-full flex-col bg-sub-panel px-3 pt-3 sm:px-4 xl:px-5">
@@ -299,7 +266,6 @@ export default function SubtitlePanel({
     <>
       <div className="h-full min-h-0 flex flex-col bg-sub-panel px-3 pt-3 pb-3 sm:px-4 xl:h-[90vh] xl:px-5">
 
-        {/* Header */}
         <div className="flex items-center justify-between pb-2 mb-2 flex-shrink-0">
           <div>
             <h2 className="text-[11px] font-medium tracking-[0.12em] uppercase text-sub-muted">
@@ -321,29 +287,25 @@ export default function SubtitlePanel({
           </div>
         </div>
 
-        {/* Scrollable list */}
         <div
           ref={listRef}
-          onScroll={handleScroll}
-          className="flex-1 overflow-y-auto overscroll-contain pr-1 stagger"
+          className="flex-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] pr-1 stagger"
           style={{ contain: 'layout style' }}
         >
           {subtitles.map((sub, idx) => (
             <SubtitleRow
               key={`${sub.start}-${sub.end}-${idx}`}
               subtitle={sub}
-              isActive={idx === activeIndex}
+              isActive={activeIndex >= 0 && idx === activeIndex}
               onClick={() => onSeek(sub.start)}
               onWordClick={handleWordClick}
             />
           ))}
-          {/* Bottom padding: tránh card cuối bị cắt sát mép dưới */}
-          <div className="h-16" aria-hidden />
+          <div className="h-16 shrink-0" aria-hidden />
         </div>
 
       </div>
 
-      {/* Word Popup — ở LEVEL PANEL, KHÔNG trong card → hiển thị giữa màn hình */}
       {popupWord && (
         <WordPopup
           word={popupWord}

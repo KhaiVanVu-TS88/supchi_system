@@ -102,11 +102,13 @@ export default function VideoDetailPage() {
             </div>
 
             {/* Phụ đề — flex-1 chiếm phần còn lại dưới video (mobile) hoặc cột phải (desktop) */}
+            {/* overflow-hidden: chỉ SubtitlePanel cuộn bên trong — tránh 2 lớp scroll làm auto-scroll hỏng trên mobile */}
             <div
-              className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-sub-panel [-webkit-overflow-scrolling:touch]
+              className="min-h-0 flex-1 overflow-hidden bg-sub-panel
                          px-3 pb-2 pt-2 sm:px-5 sm:pb-3 sm:pt-4 xl:px-5 xl:pb-0 xl:pt-6"
             >
               <SubtitlePanel
+                key={String(id)}
                 subtitles={subtitles}
                 currentTime={currentTime}
                 onSeek={t =>
