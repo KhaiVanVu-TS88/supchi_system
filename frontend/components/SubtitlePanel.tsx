@@ -1,18 +1,27 @@
 /**
- * components/SubtitlePanel.tsx v7 — Danh sách đơn + center focus có điều kiện
+ * components/SubtitlePanel.tsx v8 — Danh sách đơn
  *
- * - activeIndex < 0: một list phụ đề bình thường, không highlight, không auto-scroll.
- * - activeIndex >= 0: highlight câu active; khi index đổi, nếu nằm trong “vùng giữa” thì scroll để căn card vào giữa panel.
- * - Ngoại lệ: 2 câu đầu (0,1) và 2 câu cuối — không ép căn giữa (tránh khoảng trống).
- * - Pause: không auto-scroll (user đọc list).
+ * Narrow layout (≤1279px, trùng breakpoint xl): “top focus” — scroll đưa card active lên **đầu vùng list**.
+ * `matchMedia` đọc trong useLayoutEffect (tránh lỗi hydration: state từ useEffect chậm → lần scroll đầu bị bỏ qua).
  *
- * Căn giữa dùng getBoundingClientRect (ổn định trên mobile).
+ * Desktop (≥1280px): center focus có điều kiện (2 đầu / 2 cuối không ép giữa).
+ *
+ * activeIndex < 0: list bình thường, không highlight, không auto-scroll.
+ * Pause: không auto-scroll; resume có thể bù một lần (desktop center / mobile top).
  */
 import React, { useMemo, memo, useRef, useEffect, useLayoutEffect, useCallback, useState } from 'react'
 import type { Subtitle } from '../types/subtitle'
 import dynamic from 'next/dynamic'
 
 const WordPopup = dynamic(() => import('./dictionary/WordPopup'), { ssr: false })
+
+/** Trùng Tailwind `xl` (1280px): layout 1 cột video + phụ đề → dùng top focus */
+const TOP_FOCUS_MEDIA = '(max-width: 1279px)'
+
+function readTopFocusViewport(): boolean {
+  if (typeof window === 'undefined') return false
+  return window.matchMedia(TOP_FOCUS_MEDIA).matches
+}
 
 function findActiveIndex(subtitles: Subtitle[], currentTime: number): number {
   if (!subtitles.length) return -1
@@ -45,6 +54,24 @@ function shouldCenterActive(activeIndex: number, n: number): boolean {
   if (activeIndex <= 1) return false
   if (activeIndex >= n - 2) return false
   return true
+}
+
+/**
+ * Top focus: căn card active ở **trên cùng** vùng scroll (đầu panel phần danh sách phụ đề),
+ * không căn giữa. `topPaddingPx` = khoảng hở nhỏ dưới mép trên vùng scroll.
+ */
+function scrollCardToListTop(
+  list: HTMLElement,
+  card: HTMLElement,
+  topPaddingPx: number,
+  behavior: ScrollBehavior = 'smooth',
+) {
+  const lr = list.getBoundingClientRect()
+  const cr = card.getBoundingClientRect()
+  const delta = cr.top - lr.top - topPaddingPx
+  const nextTop = list.scrollTop + delta
+  const maxTop = list.scrollHeight - list.clientHeight
+  list.scrollTo({ top: Math.max(0, Math.min(maxTop, nextTop)), behavior })
 }
 
 function scrollCardToListCenter(list: HTMLElement, card: HTMLElement, behavior: ScrollBehavior = 'smooth') {
@@ -202,6 +229,19 @@ export default function SubtitlePanel({
   }, [])
 
   const prevSubsKeyRef = useRef('')
+  const [viewportGen, setViewportGen] = useState(0)
+  const prevViewportGenRef = useRef(0)
+
+  /** Padding mép trên card so với mép trên vùng scroll (8–12px) */
+  const TOP_FOCUS_PAD = 10
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const mq = window.matchMedia(TOP_FOCUS_MEDIA)
+    const bump = () => setViewportGen((g) => g + 1)
+    mq.addEventListener('change', bump)
+    return () => mq.removeEventListener('change', bump)
+  }, [])
 
   useLayoutEffect(() => {
     if (subsKey !== prevSubsKeyRef.current) {
@@ -209,40 +249,69 @@ export default function SubtitlePanel({
       prevActiveRef.current = -2
     }
 
-    if (activeIndex < 0) {
-      prevActiveRef.current = activeIndex
-      prevPausedRef.current = isPaused
-      return
-    }
-
     const resumed = prevPausedRef.current && !isPaused
     prevPausedRef.current = isPaused
 
-    if (isPaused && !resumed) {
+    if (activeIndex < 0) {
       prevActiveRef.current = activeIndex
+      prevViewportGenRef.current = viewportGen
       return
     }
 
+    if (isPaused && !resumed) {
+      prevActiveRef.current = activeIndex
+      prevViewportGenRef.current = viewportGen
+      return
+    }
+
+    const topFocus = readTopFocusViewport()
+    const vpBumped = viewportGen !== prevViewportGenRef.current
+
+    const prev = prevActiveRef.current
+    const indexChanged = activeIndex !== prev
+    if (!indexChanged && !resumed && !(vpBumped && topFocus)) {
+      prevViewportGenRef.current = viewportGen
+      return
+    }
+
+    const list = listRef.current
+    const items = list?.querySelectorAll('[data-subtitle-card]')
+    const raw = items?.[activeIndex]
+    const card = raw instanceof HTMLElement ? raw : null
+
     const n = subtitles.length
+
+    if (topFocus) {
+      prevActiveRef.current = activeIndex
+      prevViewportGenRef.current = viewportGen
+      const idx = activeIndex
+      if (list && card) {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const L = listRef.current
+            const nodes = L?.querySelectorAll('[data-subtitle-card]')
+            const c = nodes?.[idx]
+            if (L && c instanceof HTMLElement) {
+              scrollCardToListTop(L, c, TOP_FOCUS_PAD, 'smooth')
+            }
+          })
+        })
+      }
+      return
+    }
+
+    prevViewportGenRef.current = viewportGen
+
     if (!shouldCenterActive(activeIndex, n)) {
       prevActiveRef.current = activeIndex
       return
     }
 
-    const indexChanged = activeIndex !== prevActiveRef.current
-    if (!indexChanged && !resumed) return
-
     prevActiveRef.current = activeIndex
-
-    const list = listRef.current
-    if (!list) return
-
-    const items = list.querySelectorAll<HTMLElement>('[data-subtitle-card]')
-    const card = items[activeIndex]
-    if (!card) return
-
-    scrollCardToListCenter(list, card, 'smooth')
-  }, [activeIndex, isPaused, subsKey])
+    if (list && card) {
+      scrollCardToListCenter(list, card, 'smooth')
+    }
+  }, [activeIndex, isPaused, subsKey, subtitles.length, viewportGen])
 
   if (!subtitles.length) {
     return (
@@ -289,7 +358,8 @@ export default function SubtitlePanel({
 
         <div
           ref={listRef}
-          className="flex-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] pr-1 stagger"
+          className="stagger flex-1 scroll-smooth overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] pr-1
+                     pt-3 pb-20 lg:pt-2 lg:pb-16"
           style={{ contain: 'layout style' }}
         >
           {subtitles.map((sub, idx) => (
@@ -301,7 +371,7 @@ export default function SubtitlePanel({
               onWordClick={handleWordClick}
             />
           ))}
-          <div className="h-16 shrink-0" aria-hidden />
+          <div className="h-8 shrink-0 lg:h-4" aria-hidden />
         </div>
 
       </div>
