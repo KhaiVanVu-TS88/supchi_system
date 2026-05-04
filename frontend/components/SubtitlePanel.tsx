@@ -1,27 +1,25 @@
 /**
- * components/SubtitlePanel.tsx v8 — Danh sách đơn
+ * components/SubtitlePanel.tsx v17 — Lyric list + centered active (một luồng logic mọi breakpoint)
  *
- * Narrow layout (≤1279px, trùng breakpoint xl): “top focus” — scroll đưa card active lên **đầu vùng list**.
- * `matchMedia` đọc trong useLayoutEffect (tránh lỗi hydration: state từ useEffect chậm → lần scroll đầu bị bỏ qua).
+ * Mobile chỉ khác **kích thước cột** (`.app-split-video-sub` xếp dọc: video trên, panel dưới) — cùng component,
+ * cùng điều kiện cuộn / căn giữa / animation như desktop.
  *
- * Desktop (≥1280px): center focus có điều kiện (2 đầu / 2 cuối không ép giữa).
- *
- * activeIndex < 0: list bình thường, không highlight, không auto-scroll.
- * Pause: không auto-scroll; resume có thể bù một lần (desktop center / mobile top).
+ * Cuộn: khi đổi `activeIndex`, resize, padding lyric, resume. `activeIndex` vẫn derive từ `currentTime` ở parent.
+ * activeIndex < 0: không highlight, không auto-scroll.
  */
-import React, { useMemo, memo, useRef, useEffect, useLayoutEffect, useCallback, useState } from 'react'
+import React, {
+  useMemo,
+  memo,
+  useRef,
+  useLayoutEffect,
+  useCallback,
+  useState,
+  useEffect,
+} from 'react'
 import type { Subtitle } from '../types/subtitle'
 import dynamic from 'next/dynamic'
 
 const WordPopup = dynamic(() => import('./dictionary/WordPopup'), { ssr: false })
-
-/** Trùng Tailwind `xl` (1280px): layout 1 cột video + phụ đề → dùng top focus */
-const TOP_FOCUS_MEDIA = '(max-width: 1279px)'
-
-function readTopFocusViewport(): boolean {
-  if (typeof window === 'undefined') return false
-  return window.matchMedia(TOP_FOCUS_MEDIA).matches
-}
 
 function findActiveIndex(subtitles: Subtitle[], currentTime: number): number {
   if (!subtitles.length) return -1
@@ -48,44 +46,101 @@ function fmtTime(seconds: number): string {
   return `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`
 }
 
-/** Căn giữa chỉ khi có đủ câu (≥5) và index không thuộc 2 đầu / 2 cuối */
-function shouldCenterActive(activeIndex: number, n: number): boolean {
-  if (activeIndex < 0 || n < 5) return false
-  if (activeIndex <= 1) return false
-  if (activeIndex >= n - 2) return false
-  return true
-}
-
 /**
- * Top focus: căn card active ở **trên cùng** vùng scroll (đầu panel phần danh sách phụ đề),
- * không căn giữa. `topPaddingPx` = khoảng hở nhỏ dưới mép trên vùng scroll.
+ * Đỉnh card trong tọa độ nội dung cuộn của `list` (0 = mép trên nội dung).
+ * Ưu tiên chuỗi offsetParent (ổn định với padding wrapper); nếu gãy (body…) thì fallback rect.
  */
-function scrollCardToListTop(
-  list: HTMLElement,
-  card: HTMLElement,
-  topPaddingPx: number,
-  behavior: ScrollBehavior = 'smooth',
-) {
-  const lr = list.getBoundingClientRect()
-  const cr = card.getBoundingClientRect()
-  const delta = cr.top - lr.top - topPaddingPx
-  const nextTop = list.scrollTop + delta
-  const maxTop = list.scrollHeight - list.clientHeight
-  list.scrollTo({ top: Math.max(0, Math.min(maxTop, nextTop)), behavior })
+function getCardTopInListScrollContent(list: HTMLElement, card: HTMLElement): number | null {
+  let y = 0
+  let el: HTMLElement | null = card
+  while (el && el !== list) {
+    y += el.offsetTop
+    const parent = el.offsetParent as HTMLElement | null
+    if (!parent || !list.contains(parent)) {
+      const lr = list.getBoundingClientRect()
+      const cr = card.getBoundingClientRect()
+      if (lr.height < 12) return null
+      return cr.top - lr.top + list.scrollTop
+    }
+    el = parent
+  }
+  return Number.isFinite(y) ? y : null
 }
 
-function scrollCardToListCenter(list: HTMLElement, card: HTMLElement, behavior: ScrollBehavior = 'smooth') {
-  const lr = list.getBoundingClientRect()
-  const cr = card.getBoundingClientRect()
-  const delta = cr.top + cr.height / 2 - (lr.top + lr.height / 2)
-  const nextTop = list.scrollTop + delta
-  const maxTop = list.scrollHeight - list.clientHeight
-  list.scrollTo({ top: Math.max(0, Math.min(maxTop, nextTop)), behavior })
+/** scrollTop để tâm dọc card trùng tâm vùng nhìn của list (clamp). */
+function getScrollTopToCenterCard(list: HTMLElement, card: HTMLElement): number | null {
+  const maxTop = Math.max(0, list.scrollHeight - list.clientHeight)
+  if (list.clientHeight < 16) return null
+
+  const cardTopInContent = getCardTopInListScrollContent(list, card)
+  if (cardTopInContent === null || !Number.isFinite(cardTopInContent)) return null
+
+  const cardH = Math.max(card.getBoundingClientRect().height, card.offsetHeight, 32)
+  const cardCenter = cardTopInContent + cardH / 2
+  const targetTop = cardCenter - list.clientHeight / 2
+  const top = Math.max(0, Math.min(maxTop, Math.round(targetTop)))
+  return Number.isFinite(top) ? top : null
+}
+
+/** `scrollTop` hiện tại khác mục tiêu căn giữa (kể cả clamp đầu/cuối) — bắt reset scroll / layout mà không đổi `activeIndex`. */
+function activeCardScrollDriftFromIdeal(list: HTMLElement | null, lineIndex: number, epsilon = 10): boolean {
+  if (!list || lineIndex < 0) return false
+  const c =
+    list.querySelector(`[data-subtitle-card][data-subtitle-index="${lineIndex}"]`) ??
+    list.querySelectorAll('[data-subtitle-card]')[lineIndex]
+  if (!(c instanceof HTMLElement)) return false
+  const ideal = getScrollTopToCenterCard(list, c)
+  if (ideal === null) return false
+  return Math.abs(ideal - list.scrollTop) > epsilon
+}
+
+function prefersReducedMotion(): boolean {
+  if (typeof window === 'undefined') return false
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
+function easeOutCubic(t: number): number {
+  const u = 1 - t
+  return 1 - u * u * u
+}
+
+/** Cuộn nội suy ease-out (mượt khi đổi câu; không dùng `scrollTo({ behavior:'smooth' })` trên iOS). */
+function animateListScrollTo(
+  list: HTMLElement,
+  targetTop: number,
+  durationMs: number,
+  rafIdRef: React.MutableRefObject<number | null>,
+) {
+  if (rafIdRef.current !== null) {
+    cancelAnimationFrame(rafIdRef.current)
+    rafIdRef.current = null
+  }
+  const start = list.scrollTop
+  if (Math.abs(start - targetTop) < 2) {
+    list.scrollTop = targetTop
+    return
+  }
+  const t0 = performance.now()
+  const tick = (now: number) => {
+    if (!list.isConnected) {
+      rafIdRef.current = null
+      return
+    }
+    const t = Math.min(1, (now - t0) / durationMs)
+    list.scrollTop = Math.round(start + (targetTop - start) * easeOutCubic(t))
+    if (t < 1) {
+      rafIdRef.current = requestAnimationFrame(tick)
+    } else {
+      rafIdRef.current = null
+      list.scrollTop = targetTop
+    }
+  }
+  rafIdRef.current = requestAnimationFrame(tick)
 }
 
 function SkeletonCard() {
   return (
-    <div className="rounded-xl p-4 border border-sub-line bg-sub-card/60 space-y-3 mx-1 mb-2 shadow-sub-card">
+    <div className="rounded-xl p-4 max-xl:p-3 border border-sub-line bg-sub-card/60 space-y-3 mx-1 mb-2 max-xl:mb-1.5 shadow-sub-card">
       <div className="flex gap-2 items-center">
         <div className="skeleton h-3 w-8 rounded" />
         <div className="skeleton h-3 w-24 rounded" />
@@ -117,12 +172,13 @@ async function segmentChinese(text: string): Promise<string[]> {
 
 interface SubtitleRowProps {
   subtitle: Subtitle
+  lineIndex: number
   isActive: boolean
   onClick: () => void
   onWordClick: (word: string) => void
 }
 
-const SubtitleRow = memo<SubtitleRowProps>(function SubtitleRow({ subtitle, isActive, onClick, onWordClick }) {
+const SubtitleRow = memo<SubtitleRowProps>(function SubtitleRow({ subtitle, lineIndex, isActive, onClick, onWordClick }) {
   const [segmented, setSegmented] = useState<string[] | null>(null)
 
   useEffect(() => {
@@ -145,8 +201,10 @@ const SubtitleRow = memo<SubtitleRowProps>(function SubtitleRow({ subtitle, isAc
     <div
       onClick={handleCardClick}
       data-subtitle-card=""
+      data-subtitle-index={lineIndex}
       className={`
-        relative rounded-xl p-4 border transition-all duration-200 cursor-pointer mb-2 mx-1
+        relative rounded-xl p-4 max-xl:p-3 border cursor-pointer mb-2 max-xl:mb-1.5 mx-1
+        transition-[background-color,box-shadow,border-color] duration-300 ease-out
         ${isActive
           ? 'bg-sub-active border-sub-accent/40 shadow-sub-active ring-1 ring-sub-accent/12'
           : 'bg-sub-card border-sub-line shadow-sub-card hover:border-sub-accent/30 hover:shadow-[0_2px_10px_rgba(0,0,0,0.04)]'
@@ -163,7 +221,7 @@ const SubtitleRow = memo<SubtitleRowProps>(function SubtitleRow({ subtitle, isAc
         <span>{fmtTime(subtitle.end)}</span>
       </p>
 
-      <div className="font-serif text-lg text-sub-ink mb-1 leading-relaxed flex flex-wrap gap-x-0.5">
+      <div className="font-serif text-lg max-xl:text-base text-sub-ink mb-1 leading-relaxed flex flex-wrap gap-x-0.5">
         {segmented
           ? segmented.map((word, i) => (
               <span
@@ -179,11 +237,11 @@ const SubtitleRow = memo<SubtitleRowProps>(function SubtitleRow({ subtitle, isAc
         }
       </div>
 
-      <p className="text-sm font-medium text-sub-pinyin mb-1.5 leading-relaxed tracking-wide">{subtitle.pinyin}</p>
+      <p className="text-sm max-xl:text-[13px] font-medium text-sub-pinyin mb-1.5 max-xl:mb-1 leading-relaxed tracking-wide">{subtitle.pinyin}</p>
 
       <div className="h-px w-full mb-1.5 bg-sub-line" />
 
-      <p className="text-sm text-sub-muted leading-relaxed">{subtitle.vietnamese}</p>
+      <p className="text-sm max-xl:text-[13px] text-sub-muted leading-relaxed">{subtitle.vietnamese}</p>
     </div>
   )
 })
@@ -201,9 +259,18 @@ export default function SubtitlePanel({
   onSeek,
   isPaused = false,
 }: SubtitlePanelProps) {
+  const panelRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  const scrollAnimRafRef = useRef<number | null>(null)
   const prevActiveRef = useRef<number>(-2)
   const prevPausedRef = useRef(isPaused)
+
+  const cancelScrollAnim = useCallback(() => {
+    if (scrollAnimRafRef.current !== null) {
+      cancelAnimationFrame(scrollAnimRafRef.current)
+      scrollAnimRafRef.current = null
+    }
+  }, [])
 
   const [popupWord, setPopupWord] = useState<string | null>(null)
 
@@ -229,98 +296,237 @@ export default function SubtitlePanel({
   }, [])
 
   const prevSubsKeyRef = useRef('')
-  const [viewportGen, setViewportGen] = useState(0)
-  const prevViewportGenRef = useRef(0)
-
-  /** Padding mép trên card so với mép trên vùng scroll (8–12px) */
-  const TOP_FOCUS_PAD = 10
+  const [resizeKey, setResizeKey] = useState(0)
+  const prevResizeKeyRef = useRef(0)
+  const prevLyricPadRef = useRef(-1)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    const mq = window.matchMedia(TOP_FOCUS_MEDIA)
-    const bump = () => setViewportGen((g) => g + 1)
-    mq.addEventListener('change', bump)
-    return () => mq.removeEventListener('change', bump)
+    const bump = () => setResizeKey((k) => k + 1)
+    window.addEventListener('resize', bump)
+    window.visualViewport?.addEventListener('resize', bump)
+    return () => {
+      window.removeEventListener('resize', bump)
+      window.visualViewport?.removeEventListener('resize', bump)
+    }
   }, [])
+
+  /** Panel height changes (flex, video, rotation): debounce to avoid ResizeObserver ↔ scroll loops */
+  useEffect(() => {
+    if (!subsKey || typeof ResizeObserver === 'undefined') return
+    const el = panelRef.current
+    if (!el) return
+    let t: ReturnType<typeof setTimeout> | null = null
+    const ro = new ResizeObserver(() => {
+      if (t) clearTimeout(t)
+      t = setTimeout(() => {
+        setResizeKey((k) => k + 1)
+        t = null
+      }, 80)
+    })
+    ro.observe(el)
+    return () => {
+      if (t) clearTimeout(t)
+      ro.disconnect()
+    }
+  }, [subsKey])
+
+  /**
+   * Padding trên/dưới list để câu đầu/cuối vẫn căn giữa được khi cuộn.
+   * Desktop (xl): list cao ~90vh → tỉ lệ 0.38, max 280 giống “karaoke”.
+   * Mobile: giảm max + tỉ lệ + clamp theo visualViewport — tránh Safari/flex đo clientHeight phình
+   * → pad quá lớn → khoảng trắng khổng lồ, thẻ dồn xuống đáy (không giống hình desktop).
+   */
+  const [lyricPadPx, setLyricPadPx] = useState(96)
+  useEffect(() => {
+    if (!subsKey || typeof ResizeObserver === 'undefined') return
+    const el = listRef.current
+    if (!el) return
+    const computePad = () => {
+      const narrow =
+        typeof window !== 'undefined' &&
+        window.matchMedia('(max-width: 1279.98px)').matches
+      let h = el.clientHeight
+      if (narrow && typeof window !== 'undefined') {
+        const vh = Math.floor(window.visualViewport?.height ?? window.innerHeight)
+        h = Math.min(h, Math.max(160, Math.floor(vh * 0.48)))
+      }
+      if (h < 40) return null
+      const maxPad = narrow ? 96 : 280
+      const ratio = narrow ? 0.2 : 0.38
+      return Math.max(40, Math.min(maxPad, Math.floor(h * ratio)))
+    }
+    const ro = new ResizeObserver(() => {
+      const pad = computePad()
+      if (pad === null) return
+      setLyricPadPx((p) => (p === pad ? p : pad))
+    })
+    ro.observe(el)
+    const pad0 = computePad()
+    if (pad0 !== null) setLyricPadPx((p) => (p === pad0 ? p : pad0))
+    const onVv = () => {
+      const pad = computePad()
+      if (pad !== null) setLyricPadPx((p) => (p === pad ? p : pad))
+    }
+    window.visualViewport?.addEventListener('resize', onVv)
+    return () => {
+      ro.disconnect()
+      window.visualViewport?.removeEventListener('resize', onVv)
+    }
+  }, [subsKey])
 
   useLayoutEffect(() => {
     if (subsKey !== prevSubsKeyRef.current) {
+      cancelScrollAnim()
       prevSubsKeyRef.current = subsKey
       prevActiveRef.current = -2
+      prevLyricPadRef.current = -1
+      const L0 = listRef.current
+      if (L0) L0.scrollTop = 0
     }
 
-    const resumed = prevPausedRef.current && !isPaused
+    const wasPaused = prevPausedRef.current
+    const resumed = wasPaused && !isPaused
+    /** Vừa chuyển play → pause: luôn thử căn lại — nhánh pause idle cũ chặn trước drift, list dừn ở câu 5 mà vẫn hiện câu 1. */
+    const justPaused = !wasPaused && isPaused
     prevPausedRef.current = isPaused
 
+    const cleanupAnim = () => {
+      cancelScrollAnim()
+    }
+
     if (activeIndex < 0) {
+      cancelScrollAnim()
       prevActiveRef.current = activeIndex
-      prevViewportGenRef.current = viewportGen
-      return
+      prevResizeKeyRef.current = resizeKey
+      return cleanupAnim
     }
 
-    if (isPaused && !resumed) {
-      prevActiveRef.current = activeIndex
-      prevViewportGenRef.current = viewportGen
-      return
-    }
-
-    const topFocus = readTopFocusViewport()
-    const vpBumped = viewportGen !== prevViewportGenRef.current
+    const resized = resizeKey !== prevResizeKeyRef.current
 
     const prev = prevActiveRef.current
     const indexChanged = activeIndex !== prev
-    if (!indexChanged && !resumed && !(vpBumped && topFocus)) {
-      prevViewportGenRef.current = viewportGen
-      return
+    const lyricPadChanged = prevLyricPadRef.current !== lyricPadPx
+
+    const L0 = listRef.current
+    /**
+     * Đang play: `scrollTop` lệch so với mục tiêu căn giữa (kể cả khi `activeIndex` không đổi).
+     * Khi pause không kiểm tra drift liên tục (tránh giành scroll với người đang lướt tay).
+     */
+    const scrollDriftWhilePlaying =
+      !isPaused &&
+      scrollAnimRafRef.current === null &&
+      activeCardScrollDriftFromIdeal(L0, activeIndex, 10)
+
+    const shouldScroll =
+      indexChanged ||
+      resumed ||
+      resized ||
+      lyricPadChanged ||
+      scrollDriftWhilePlaying ||
+      justPaused
+
+    if (!shouldScroll) {
+      if (isPaused) cancelScrollAnim()
+      return cleanupAnim
     }
 
-    const list = listRef.current
-    const items = list?.querySelectorAll('[data-subtitle-card]')
-    const raw = items?.[activeIndex]
-    const card = raw instanceof HTMLElement ? raw : null
+    const idx = activeIndex
 
-    const n = subtitles.length
+    /** Chỉ nội suy khi đổi dòng thuần (không đổi layout/padding/resume cùng lúc — tránh chồng animation). */
+    const wantSmoothScroll =
+      indexChanged &&
+      !resized &&
+      !lyricPadChanged &&
+      !resumed &&
+      !prefersReducedMotion()
 
-    if (topFocus) {
+    const durationMs = 280
+
+    const commitScrollRefs = () => {
       prevActiveRef.current = activeIndex
-      prevViewportGenRef.current = viewportGen
-      const idx = activeIndex
-      if (list && card) {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            const L = listRef.current
-            const nodes = L?.querySelectorAll('[data-subtitle-card]')
-            const c = nodes?.[idx]
-            if (L && c instanceof HTMLElement) {
-              scrollCardToListTop(L, c, TOP_FOCUS_PAD, 'smooth')
-            }
-          })
-        })
+      prevResizeKeyRef.current = resizeKey
+      prevLyricPadRef.current = lyricPadPx
+    }
+
+    /** Chỉ commit prev* sau khi cuộn thành công — tránh Safari frame đầu rect=0 → bỏ cuộn mà vẫn advance prev → list trắng. */
+    const applyScroll = (allowSmooth: boolean): boolean => {
+      const L = listRef.current
+      if (!L) return false
+      const c =
+        L.querySelector(`[data-subtitle-card][data-subtitle-index="${idx}"]`) ??
+        L.querySelectorAll('[data-subtitle-card]')[idx]
+      if (!(c instanceof HTMLElement)) return false
+      const target = getScrollTopToCenterCard(L, c)
+      if (target === null) return false
+      if (allowSmooth && wantSmoothScroll && Math.abs(L.scrollTop - target) > 4) {
+        animateListScrollTo(L, target, durationMs, scrollAnimRafRef)
+      } else {
+        cancelScrollAnim()
+        L.scrollTop = target
       }
-      return
+      return true
     }
 
-    prevViewportGenRef.current = viewportGen
-
-    if (!shouldCenterActive(activeIndex, n)) {
-      prevActiveRef.current = activeIndex
-      return
+    /** Cuối cùng: cùng getScrollTopToCenterCard (một nguồn sự thật). */
+    const forceScrollToCard = (): boolean => {
+      const L = listRef.current
+      if (!L || L.clientHeight < 8) return false
+      const c =
+        L.querySelector(`[data-subtitle-card][data-subtitle-index="${idx}"]`) ??
+        L.querySelectorAll('[data-subtitle-card]')[idx]
+      if (!(c instanceof HTMLElement)) return false
+      const t = getScrollTopToCenterCard(L, c)
+      if (t === null) return false
+      cancelScrollAnim()
+      L.scrollTop = t
+      return true
     }
 
-    prevActiveRef.current = activeIndex
-    if (list && card) {
-      scrollCardToListCenter(list, card, 'smooth')
+    const finishScroll = () => {
+      if (forceScrollToCard()) commitScrollRefs()
     }
-  }, [activeIndex, isPaused, subsKey, subtitles.length, viewportGen])
+
+    if (wantSmoothScroll) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (applyScroll(true)) {
+            commitScrollRefs()
+            return
+          }
+          if (applyScroll(false)) {
+            commitScrollRefs()
+            return
+          }
+          finishScroll()
+        })
+      })
+    } else {
+      let ok = applyScroll(false)
+      queueMicrotask(() => {
+        ok = applyScroll(false) || ok
+      })
+      requestAnimationFrame(() => {
+        ok = applyScroll(false) || ok
+        requestAnimationFrame(() => {
+          ok = applyScroll(false) || ok
+          if (ok) commitScrollRefs()
+          else finishScroll()
+        })
+      })
+    }
+
+    return cleanupAnim
+  }, [activeIndex, currentTime, isPaused, subsKey, resizeKey, lyricPadPx, cancelScrollAnim])
 
   if (!subtitles.length) {
     return (
-      <div className="flex h-full flex-col bg-sub-panel px-3 pt-3 sm:px-4 xl:px-5">
+      <div className="flex h-full max-xl:max-h-[min(58dvh,60vh)] w-full min-h-0 flex-col overflow-hidden bg-sub-panel px-3 pt-3 sm:px-4 xl:px-5">
         <div className="flex items-center justify-between pb-2 mb-2 flex-shrink-0">
           <div className="skeleton h-4 w-32 rounded" />
           <div className="skeleton h-4 w-16 rounded" />
         </div>
-        <div className="flex-1 overflow-hidden">
+        <div className="min-h-0 flex-1 overflow-hidden">
           {[0, 80, 160, 240, 320].map((delay) => (
             <SkeletonCard key={delay} />
           ))}
@@ -333,7 +539,10 @@ export default function SubtitlePanel({
 
   return (
     <>
-      <div className="h-full min-h-0 flex flex-col bg-sub-panel px-3 pt-3 pb-3 sm:px-4 xl:h-[90vh] xl:px-5">
+      <div
+        ref={panelRef}
+        className="flex h-full max-xl:max-h-[min(58dvh,60vh)] w-full min-h-0 flex-col overflow-hidden bg-sub-panel px-3 pt-3 pb-3 sm:px-4 xl:h-[90vh] xl:min-h-0 xl:px-5"
+      >
 
         <div className="flex items-center justify-between pb-2 mb-2 flex-shrink-0">
           <div>
@@ -358,20 +567,23 @@ export default function SubtitlePanel({
 
         <div
           ref={listRef}
-          className="stagger flex-1 scroll-smooth overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] pr-1
-                     pt-3 pb-20 lg:pt-2 lg:pb-16"
-          style={{ contain: 'layout style' }}
+          className="subtitle-lyric-scroll flex-1 min-h-0 touch-pan-y overscroll-contain [-webkit-overflow-scrolling:touch] pr-2 sm:pr-1"
         >
-          {subtitles.map((sub, idx) => (
-            <SubtitleRow
-              key={`${sub.start}-${sub.end}-${idx}`}
-              subtitle={sub}
-              isActive={activeIndex >= 0 && idx === activeIndex}
-              onClick={() => onSeek(sub.start)}
-              onWordClick={handleWordClick}
-            />
-          ))}
-          <div className="h-8 shrink-0 lg:h-4" aria-hidden />
+          <div
+            className="subtitle-lyric-inner"
+            style={{ ['--lyric-pad' as string]: `${lyricPadPx}px` }}
+          >
+            {subtitles.map((sub, idx) => (
+              <SubtitleRow
+                key={`${sub.start}-${sub.end}-${idx}`}
+                subtitle={sub}
+                lineIndex={idx}
+                isActive={activeIndex >= 0 && idx === activeIndex}
+                onClick={() => onSeek(sub.start)}
+                onWordClick={handleWordClick}
+              />
+            ))}
+          </div>
         </div>
 
       </div>

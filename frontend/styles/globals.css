@@ -38,7 +38,7 @@
         -webkit-overflow-scrolling: touch;
     }
 
-    /* Scrollbar — hidden on mobile, thin on desktop */
+    /* Scrollbar — chỉ style từ 768px+ (dưới 768 dùng mặc định; vùng phụ đề dùng .subtitle-lyric-scroll) */
     @media (min-width: 768px) {
         ::-webkit-scrollbar {
             width: 4px;
@@ -560,6 +560,14 @@
     .app-split-video-sub > :first-child {
         width: 100% !important;
         max-width: 100% !important;
+        /*
+         * Cột 1 flex-shrink:0 có thể cao hơn viewport → cột phụ đề (flex:1) bị co về ~0 trên iOS.
+         * Giới hạn chiều cao + cuộn nội bộ để luôn còn chỗ cho danh sách thoại.
+         */
+        max-height: min(58dvh, calc(100dvh - 10rem));
+        min-height: 0;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
     }
 }
 
@@ -571,6 +579,75 @@
     .app-split-video-sub > :first-child {
         width: 52% !important;
         max-width: 52% !important;
+    }
+}
+
+/*
+ * SubtitlePanel list — mobile: luôn dùng overflow-y: scroll (lane cuộn cố định) + track có màu
+ * để thanh thấy rõ hơn auto/transparent. iOS vẫn overlay khi vuốt nhưng WebKit thumb rộng + đậm hơn.
+ * Desktop xl: overflow-y:auto trong media riêng (tránh vạch khi nội dung ngắn).
+ */
+.subtitle-lyric-scroll {
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+}
+
+/* Padding lyric: desktop dùng đủ --lyric-pad; mobile cap bằng min() tránh state/đo RO phình → khoảng trắng khổng lồ. */
+.subtitle-lyric-inner {
+    padding-top: var(--lyric-pad, 96px);
+    padding-bottom: var(--lyric-pad, 96px);
+}
+
+@media (max-width: 1279.98px) {
+    .subtitle-lyric-inner {
+        /* Cap nhỏ hơn desktop: ít khoảng trống dọc, vẫn đủ để câu đầu/cuối tới vùng giữa list */
+        padding-top: min(60px, var(--lyric-pad));
+        padding-bottom: min(60px, var(--lyric-pad));
+    }
+}
+
+@media (max-width: 479.98px) {
+    .subtitle-lyric-inner {
+        padding-top: min(44px, var(--lyric-pad));
+        padding-bottom: min(44px, var(--lyric-pad));
+    }
+}
+
+@media (max-width: 1279.98px) {
+    .subtitle-lyric-scroll {
+        overflow-y: scroll !important;
+        scrollbar-gutter: stable;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(0, 0, 0, 0.42) rgba(0, 0, 0, 0.1);
+    }
+
+    .subtitle-lyric-scroll::-webkit-scrollbar {
+        width: 10px;
+    }
+
+    .subtitle-lyric-scroll::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.08);
+        border-radius: 10px;
+        margin: 4px 0;
+    }
+
+    .subtitle-lyric-scroll::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.32);
+        border-radius: 10px;
+        border: 2px solid transparent;
+        background-clip: padding-box;
+    }
+
+    .subtitle-lyric-scroll::-webkit-scrollbar-thumb:active {
+        background: rgba(0, 0, 0, 0.48);
+        background-clip: padding-box;
+    }
+}
+
+@media (min-width: 1280px) {
+    .subtitle-lyric-scroll {
+        overflow-y: auto;
     }
 }
 

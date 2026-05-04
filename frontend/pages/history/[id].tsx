@@ -23,6 +23,7 @@ export default function VideoDetailPage() {
 
   const [video,       setVideo]       = useState<VideoDetail | null>(null)
   const [currentTime, setCurrentTime] = useState(0)
+  const [isPaused,    setIsPaused]    = useState(false)
   const [loading,     setLoading]     = useState(true)
   const [error,       setError]       = useState<string | null>(null)
 
@@ -88,7 +89,12 @@ export default function VideoDetailPage() {
                 <span className="mx-2 opacity-40">/</span>
                 {video.title}
               </p>
-              <VideoPlayer videoId={video.video_id} onTimeUpdate={setCurrentTime} compact />
+              <VideoPlayer
+                videoId={video.video_id}
+                onTimeUpdate={setCurrentTime}
+                onPausedChange={setIsPaused}
+                compact
+              />
               <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-4 sm:gap-3">
                 <div className="glass rounded-xl px-3 py-2.5 text-center">
                   <p className="font-mono text-base font-bold text-amber-glow">{video.subtitle_count}</p>
@@ -104,13 +110,14 @@ export default function VideoDetailPage() {
             {/* Phụ đề — flex-1 chiếm phần còn lại dưới video (mobile) hoặc cột phải (desktop) */}
             {/* overflow-hidden: chỉ SubtitlePanel cuộn bên trong — tránh 2 lớp scroll làm auto-scroll hỏng trên mobile */}
             <div
-              className="min-h-0 flex-1 overflow-hidden bg-sub-panel
+              className="flex min-h-0 flex-1 flex-col overflow-hidden bg-sub-panel
                          px-3 pb-2 pt-2 sm:px-5 sm:pb-3 sm:pt-4 xl:px-5 xl:pb-0 xl:pt-6"
             >
               <SubtitlePanel
                 key={String(id)}
                 subtitles={subtitles}
                 currentTime={currentTime}
+                isPaused={isPaused}
                 onSeek={t =>
                   window.dispatchEvent(new CustomEvent('seek-video', { detail: { time: t } }))
                 }

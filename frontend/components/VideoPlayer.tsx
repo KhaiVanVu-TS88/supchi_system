@@ -24,9 +24,10 @@ export default function VideoPlayer({
 
     const startPolling = useCallback(() => {
         stopPolling()
+        /* ~12Hz: đủ sync phụ đề, tránh storm re-render / useLayoutEffect trên mobile (interval 0 quá dày) */
         intervalRef.current = setInterval(() => {
             if (playerRef.current?.getCurrentTime) onTimeUpdate(playerRef.current.getCurrentTime())
-        }, 0)
+        }, 80)
     }, [onTimeUpdate, stopPolling])
 
     useEffect(() => () => stopPolling(), [stopPolling])
