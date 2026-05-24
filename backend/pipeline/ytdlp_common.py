@@ -15,14 +15,15 @@ from __future__ import annotations
 import logging
 import os
 import shutil
+import tempfile
 from copy import deepcopy
 from typing import Any, Dict, Iterator, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 _missing_cookie_warned = False
 _cookie_ok_logged = False
-# yt-dlp ghi lại cookie → bind mount từ host (đặc biệt Docker Desktop + Windows) hay Errno 30; dùng bản sao trong /tmp.
-_COOKIE_WORK_COPY = "/tmp/ytdlp_youtube_cookies.txt"
+# yt-dlp có thể ghi lại cookie → bản sao trong thư mục temp (Linux /tmp; Windows %TEMP%) để tránh Errno 30 khi mount read-only.
+_COOKIE_WORK_COPY = os.path.join(tempfile.gettempdir(), "ytdlp_youtube_cookies.txt")
 _cookie_copy_src_mtime: Optional[float] = None
 _po_token_logged = False
 

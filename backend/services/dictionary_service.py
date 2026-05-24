@@ -13,6 +13,8 @@ import os
 import re
 import logging
 import hashlib
+import tempfile
+import threading
 import urllib.request
 import gzip
 from typing import Optional
@@ -21,12 +23,16 @@ from pypinyin import lazy_pinyin, Style
 
 logger = logging.getLogger(__name__)
 
-CEDICT_MIRRORS = [
-    "https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz",
-    "https://github.com/gugray/HanziLookupJS/raw/master/data/cedict_ts.u8.gz",
+# (url, gzip). Chỉ mirror MDBG (ổn định); mirror GitHub cũ hay 404 — bỏ để tránh tải rỗng + chậm fallback Google.
+CEDICT_SOURCES: list[tuple[str, bool]] = [
+    ("https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz", True),
 ]
-CEDICT_PATH = "/tmp/cedict.txt"
-CEDICT_GZ   = "/tmp/cedict.txt.gz"
+
+# Tránh hai thread (prewarm + request) cùng ghi một file → WinError 32 trên Windows.
+_cedict_load_lock = threading.Lock()
+# /tmp chỉ có trên Linux/macOS; Windows cần thư mục temp thật (tránh 500 khi tải/parse CC-CEDICT).
+_tmp = tempfile.gettempdir()
+CEDICT_PATH = os.path.join(_tmp, "cedict_supchi.txt")
 
 _dictionary: dict[str, list[dict]] = {}
 _loaded = False
@@ -40,8 +46,11 @@ def ensure_loaded():
     global _loaded
     if _loaded:
         return
-    _load_cedict()
-    _loaded = True
+    with _cedict_load_lock:
+        if _loaded:
+            return
+        _load_cedict()
+        _loaded = True
 
 
 def _load_cedict():
@@ -72,22 +81,40 @@ def _load_cedict():
 
 
 def _download_cedict():
-    for url in CEDICT_MIRRORS:
+    """
+    Tải CC-CEDICT an toàn khi đa luồng: file tạm duy nhất + os.replace (tránh WinError 32).
+    """
+    for url, as_gzip in CEDICT_SOURCES:
+        fd, tmp_path = tempfile.mkstemp(prefix="cedict_dl_", suffix=".bin", dir=_tmp)
+        os.close(fd)
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-            with urllib.request.urlopen(req, timeout=30) as r:
-                with open(CEDICT_GZ, 'wb') as f:
-                    f.write(r.read())
-            with gzip.open(CEDICT_GZ, 'rb') as gz:
-                with open(CEDICT_PATH, 'wb') as out:
-                    out.write(gz.read())
-            if os.path.exists(CEDICT_GZ):
-                os.remove(CEDICT_GZ)
-            logger.info(f"Downloaded CC-CEDICT from {url}")
+            with urllib.request.urlopen(req, timeout=90) as r:
+                raw = r.read()
+            if as_gzip:
+                body = gzip.decompress(raw)
+            else:
+                body = raw
+            out_tmp = tmp_path + ".out"
+            with open(out_tmp, "wb") as out:
+                out.write(body)
+            os.replace(out_tmp, CEDICT_PATH)
+            logger.info("Downloaded CC-CEDICT from %s", url)
             return
         except Exception as e:
-            logger.warning(f"Mirror failed: {e}")
-    open(CEDICT_PATH, 'w').close()
+            logger.warning("CC-CEDICT mirror failed (%s): %s", url, e)
+            try:
+                if os.path.isfile(tmp_path):
+                    os.remove(tmp_path)
+                out_tmp = tmp_path + ".out"
+                if os.path.isfile(out_tmp):
+                    os.remove(out_tmp)
+            except OSError:
+                pass
+    try:
+        open(CEDICT_PATH, "w", encoding="utf-8").close()
+    except OSError as e:
+        logger.error(f"Could not create empty CEDICT placeholder at {CEDICT_PATH}: {e}")
 
 
 def _parse_cedict_line(line: str) -> Optional[dict]:

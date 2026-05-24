@@ -49,6 +49,11 @@ RUN set -eux; \
     deno --version; \
     apt-get clean; rm -rf /var/lib/apt/lists/*
 
+# SQLite CLI — RUN riêng để layer rõ ràng (docker compose build backend luôn thấy bước này)
+RUN apt-get update && apt-get install -y --no-install-recommends sqlite3 \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* \
+    && sqlite3 --version
+
 WORKDIR /app
 
 COPY requirements.txt .

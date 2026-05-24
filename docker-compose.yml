@@ -30,6 +30,8 @@ services:
   # BACKEND API — FastAPI
   # ───────────────────────────────────────────
   backend:
+    # Tên image cố định — dễ kiểm tra `docker images` và tránh nhầm image build từ project/path khác
+    image: supchi4-backend:local
     build:
       context: ./backend
       dockerfile: Dockerfile
