@@ -1,40 +1,98 @@
-# ===== .GITIGNORE =====
+# ===== .GITIGNORE — chinese-learning-app =====
 
-# Environment
+# ── Environment & secrets ──
 .env
 .env.local
 .env.*.local
+!.env.example
+secrets/
 
-# Python
+# ── Python ──
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
 .Python
 *.egg-info/
+.eggs/
 dist/
 build/
+*.egg
+
+# Virtual environments (mọi biến thể)
 venv/
 .venv/
+.venv-*/
+**/.venv/
+**/.venv-*/
+**/venv/
 
-# Next.js
+# Testing / lint cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# ── Next.js / Node ──
+node_modules/
 frontend/.next/
 frontend/out/
 frontend/node_modules/
+.npm
+*.tsbuildinfo
+next-env.d.ts
 
-# Secrets (YouTube cookies cho yt-dlp — không commit)
-secrets/
+# ── Database (dev local — không commit) ──
+*.db
+*.sqlite
+*.sqlite3
+supchi4.db
 
-# Audio/Video temp files
+# ── AI / ML cache (Whisper, Hugging Face) ──
+.cache/
+**/.cache/
+whisper_cache/
+*.onnx
+*.pt
+*.pth
+*.bin
+*.safetensors
+
+# ── Celery ──
+celerybeat-schedule
+celerybeat-schedule.db
+celerybeat.pid
+
+# ── Audio/Video temp ──
 /tmp/
 *.wav
 *.mp3
 *.mp4
 *.webm
+*.m4a
+*.flac
 
-# OS
+# ── OS ──
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Docker
+# ── IDE ──
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── Logs ──
 *.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── Docker (local overrides, không commit) ──
+docker-compose.override.yml
